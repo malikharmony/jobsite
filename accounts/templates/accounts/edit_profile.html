@@ -7,79 +7,390 @@
     <div class="col-12 col-md-10 col-lg-8">
       <div class="card shadow-sm border-0">
         <div class="card-body p-4 p-md-5">
-          <h2 class="card-title text-primary fw-bold mb-2">Edit Your Profile</h2>
-          <p class="text-muted mb-4">Complete your profile information to connect with jobs and opportunities.</p>
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h2 class="card-title text-primary fw-bold mb-1">Edit Your Profile</h2>
+              <p class="text-muted mb-0">Complete your profile information to connect with jobs and opportunities.</p>
+            </div>
+            {% if is_new_account %}
+              <a href="{% url 'accounts.profile' username=user.username %}" class="btn btn-sm btn-outline-secondary text-nowrap ms-2">Skip for Now</a>
+            {% endif %}
+          </div>
           <hr class="mb-4">
 
-          <form method="post" action="{% url 'accounts.edit_profile' %}">
+          <form method="post" action="{% url 'accounts.edit_profile' %}" enctype="multipart/form-data">
             {% csrf_token %}
+
+            <div class="d-flex align-items-center gap-3 mb-4 p-3 border rounded-3 bg-light">
+              <div class="position-relative">
+                {% if profile.photo %}
+                  <img src="{{ profile.photo.url }}" alt="Profile Photo" id="photo-preview" class="rounded border object-fit-cover" style="width: 80px; height: 80px;">
+                {% else %}
+                  <div id="photo-preview-placeholder" class="rounded border bg-white d-flex align-items-center justify-content-center text-secondary" style="width: 80px; height: 80px;">
+                    <i class="fa-regular fa-user fa-3x"></i>
+                  </div>
+                  <img src="" alt="Profile Photo" id="photo-preview" class="rounded border object-fit-cover d-none" style="width: 80px; height: 80px;">
+                {% endif %}
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-semibold text-dark mb-1">Profile Photo</div>
+                <input class="form-control form-control-sm" type="file" id="photo" name="photo" accept="image/*" aria-label="Profile Photo">
+                {% if profile.photo %}
+                  <div class="form-check mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo">
+                    <label class="form-check-label text-danger small" for="remove_photo">Remove current photo</label>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
 
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label for="first_name" class="form-label fw-medium">First Name</label>
-                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required placeholder="First Name *" aria-label="First Name">
               </div>
               <div class="col-md-6">
-                <label for="last_name" class="form-label fw-medium">Last Name</label>
-                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required placeholder="Last Name *" aria-label="Last Name">
               </div>
             </div>
 
             <div class="mb-3">
-              <label for="username" class="form-label fw-medium">Username</label>
               <div class="input-group">
                 <span class="input-group-text">/</span>
-                <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required placeholder="Username *" aria-label="Username">
               </div>
               <div class="form-text">This will be your unique profile URL: /{{ user.username }}.</div>
             </div>
 
             <div class="mb-3">
-              <label for="headline" class="form-label fw-medium">Headline</label>
-              <input type="text" class="form-control" id="headline" name="headline" value="{{ profile.headline }}">
+              <input type="text" class="form-control" id="headline" name="headline" value="{{ profile.headline }}" placeholder="Headline (e.g. Computer Science Student at Georgia Tech)" aria-label="Headline">
             </div>
 
-            <div class="mb-3">
-              <label for="about" class="form-label fw-medium">About</label>
-              <textarea class="form-control" id="about" name="about" rows="3">{{ profile.about }}</textarea>
-            </div>
-
-            <div class="mb-3">
-              <label for="education" class="form-label fw-medium">Education</label>
-              <textarea class="form-control" id="education" name="education" rows="3">{{ profile.education }}</textarea>
-            </div>
-
-            <div class="mb-3">
-              <label for="experience" class="form-label fw-medium">Experience</label>
-              <textarea class="form-control" id="experience" name="experience" rows="3">{{ profile.experience }}</textarea>
+            <div class="row g-2 mb-3" id="location-row">
+              <div class="{% if is_us %}col-md-4{% else %}col-md-6{% endif %}" id="country-col">
+                <select class="form-select" id="country" name="country" aria-label="Country">
+                  <option value="">Select Country</option>
+                  {% for c in countries %}
+                    <option value="{{ c }}" {% if profile.country == c or profile.country == 'USA' and c == 'United States' or profile.country == 'US' and c == 'United States' %}selected{% endif %}>{{ c }}</option>
+                  {% endfor %}
+                  {% if profile.country and profile.country not in countries and profile.country != 'USA' and profile.country != 'US' %}
+                    <option value="{{ profile.country }}" selected>{{ profile.country }}</option>
+                  {% endif %}
+                </select>
+              </div>
+              <div class="col-md-4 {% if not is_us %}d-none{% endif %}" id="state-col">
+                <select class="form-select" id="state" name="state" aria-label="State" {% if not is_us %}disabled{% endif %}>
+                  <option value="">Select State</option>
+                  {% for s in us_states %}
+                    <option value="{{ s }}" {% if profile.state == s or selected_state_name == s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                  {% if profile.state and profile.state not in us_states and not selected_state_name %}
+                    <option value="{{ profile.state }}" selected>{{ profile.state }}</option>
+                  {% endif %}
+                </select>
+              </div>
+              <div class="{% if is_us %}col-md-4{% else %}col-md-6{% endif %}" id="city-col">
+                <input type="text" class="form-control" id="city" name="city" maxlength="100" value="{{ profile.city }}" placeholder="City" aria-label="City">
+              </div>
             </div>
 
             <div class="mb-4">
-              <label for="skills" class="form-label fw-medium">Skills</label>
-              <textarea class="form-control" id="skills" name="skills" rows="2">{{ profile.skills }}</textarea>
+              <textarea class="form-control" id="about" name="about" rows="3" placeholder="About you (interests, background, and goals)..." aria-label="About">{{ profile.about }}</textarea>
             </div>
 
-            <div class="mb-3">
-              <label for="location" class="form-label fw-medium">Location</label>
-              <input type="text" class="form-control" id="location" name="location"
-                     maxlength="255" value="{{ profile.location }}">
+            <hr class="my-4">
+            <h4 class="text-primary fw-bold mb-3">Profile Categories</h4>
+            <p class="text-muted small mb-4">Add and edit structured entries for your profile categories.</p>
+
+            <div class="card border rounded-3 p-3 mb-4" id="education-section">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                  <i class="fa-solid fa-graduation-cap text-primary me-2"></i>Education
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addEducationModal">
+                  <i class="fa-solid fa-plus me-1"></i> Add Education
+                </button>
+              </div>
+              {% if profile.educations.all %}
+                <div class="d-flex flex-column gap-2 mt-2">
+                  {% for edu in profile.educations.all %}
+                    <div class="p-3 bg-light rounded-2 border d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-bold">{{ edu.school }}</div>
+                        <div class="text-secondary small">
+                          {% if edu.degree %}{{ edu.degree }}{% endif %}
+                          {% if edu.degree and edu.major %} in {% endif %}
+                          {% if edu.major %}{{ edu.major }}{% endif %}
+                          {% if edu.gpa %}&middot; GPA: {{ edu.gpa }}{% endif %}
+                        </div>
+                        {% if edu.enrollment_period %}
+                          <div class="text-muted small">{{ edu.enrollment_period }}</div>
+                        {% endif %}
+                      </div>
+                      <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary border-0" data-bs-toggle="modal" data-bs-target="#editEducationModal_{{ edu.id }}" title="Edit entry">
+                          <i class="fa-regular fa-pen-to-square"></i>
+                        </button>
+                        <button type="submit" form="del_edu_{{ edu.id }}" class="btn btn-sm btn-outline-danger border-0" title="Delete entry" onclick="return confirm('Delete this education entry?');">
+                          <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-muted small fst-italic mb-0 mt-1">No education entries added yet.</p>
+              {% endif %}
             </div>
 
-            <div class="mb-4">
-              <label for="projects" class="form-label fw-medium">Projects</label>
-              <textarea class="form-control" id="projects" name="projects"
-                        rows="3">{{ profile.projects }}</textarea>
+            <div class="card border rounded-3 p-3 mb-4" id="experience-section">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                  <i class="fa-solid fa-briefcase text-primary me-2"></i>Experience
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addExperienceModal">
+                  <i class="fa-solid fa-plus me-1"></i> Add Experience
+                </button>
+              </div>
+              {% if profile.experiences.all %}
+                <div class="d-flex flex-column gap-2 mt-2">
+                  {% for exp in profile.experiences.all %}
+                    <div class="p-3 bg-light rounded-2 border d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-bold">{{ exp.title }}</div>
+                        <div class="text-secondary small">{{ exp.company }}{% if exp.location %} &middot; {{ exp.location }}{% endif %}</div>
+                        {% if exp.period %}
+                          <div class="text-muted small">{{ exp.period }}</div>
+                        {% endif %}
+                      </div>
+                      <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary border-0" data-bs-toggle="modal" data-bs-target="#editExperienceModal_{{ exp.id }}" title="Edit entry">
+                          <i class="fa-regular fa-pen-to-square"></i>
+                        </button>
+                        <button type="submit" form="del_exp_{{ exp.id }}" class="btn btn-sm btn-outline-danger border-0" title="Delete entry" onclick="return confirm('Delete this experience entry?');">
+                          <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-muted small fst-italic mb-0 mt-1">No experience entries added yet.</p>
+              {% endif %}
+            </div>
+
+            <div class="card border rounded-3 p-3 mb-4" id="skills-section">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                  <i class="fa-solid fa-wand-magic-sparkles text-primary me-2"></i>Skills
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+                  <i class="fa-solid fa-plus me-1"></i> Add Skill
+                </button>
+              </div>
+              {% if profile.skills_list.all %}
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  {% for sk in profile.skills_list.all %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fs-6 d-inline-flex align-items-center gap-2">
+                      {{ sk.name }}
+                      {% if sk.proficiency %}
+                        <span class="badge bg-primary text-white rounded-pill small" style="font-size: 0.7rem;">{{ sk.proficiency }}</span>
+                      {% endif %}
+                      <button type="button" class="btn btn-link text-primary p-0 m-0 border-0 ms-1" style="font-size: 0.85rem;" data-bs-toggle="modal" data-bs-target="#editSkillModal_{{ sk.id }}" title="Edit skill">
+                        <i class="fa-regular fa-pen-to-square"></i>
+                      </button>
+                      <button type="submit" form="del_sk_{{ sk.id }}" class="btn-close ms-1" style="font-size: 0.55rem;" aria-label="Delete skill" onclick="return confirm('Delete this skill?');"></button>
+                    </span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-muted small fst-italic mb-0 mt-1">No skills added yet.</p>
+              {% endif %}
+            </div>
+
+            <div class="card border rounded-3 p-3 mb-4" id="projects-section">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                  <i class="fa-solid fa-folder-open text-primary me-2"></i>Projects
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                  <i class="fa-solid fa-plus me-1"></i> Add Project
+                </button>
+              </div>
+              {% if profile.projects_list.all %}
+                <div class="d-flex flex-column gap-2 mt-2">
+                  {% for proj in profile.projects_list.all %}
+                    <div class="p-3 bg-light rounded-2 border d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-bold">{{ proj.title }}</div>
+                        {% if proj.technologies %}
+                          <div class="text-muted small">{{ proj.technologies }}</div>
+                        {% endif %}
+                        {% if proj.link %}
+                          <div class="small"><a href="{{ proj.link }}" target="_blank" rel="noopener noreferrer" class="text-primary">{{ proj.link }}</a></div>
+                        {% endif %}
+                      </div>
+                      <div class="d-flex align-items-center gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary border-0" data-bs-toggle="modal" data-bs-target="#editProjectModal_{{ proj.id }}" title="Edit entry">
+                          <i class="fa-regular fa-pen-to-square"></i>
+                        </button>
+                        <button type="submit" form="del_proj_{{ proj.id }}" class="btn btn-sm btn-outline-danger border-0" title="Delete entry" onclick="return confirm('Delete this project entry?');">
+                          <i class="fa-regular fa-trash-can"></i>
+                        </button>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-muted small fst-italic mb-0 mt-1">No projects added yet.</p>
+              {% endif %}
+            </div>
+
+            <hr class="my-4">
+            <h4 class="text-primary fw-bold mb-3">Privacy Settings</h4>
+            <p class="text-muted small mb-3">Control your profile visibility and choose what recruiters and other users can see.</p>
+
+            <div class="card bg-light border-0 p-3 mb-3">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="is_private" name="is_private" {% if profile.is_private %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="is_private">Private Profile</label>
+                <div class="form-text">When enabled, your entire profile is hidden from recruiters and other job seekers. Only you and administrators can view it.</div>
+              </div>
+            </div>
+
+            <div class="card border p-3 mb-3">
+              <h6 class="fw-semibold mb-2">Section Visibility</h6>
+              <div class="text-muted small mb-3">Choose which individual sections recruiters can see when viewing your profile:</div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show_email" name="show_email" {% if profile.show_email %}checked{% endif %}>
+                    <label class="form-check-label" for="show_email">Show Email Address</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show_location" name="show_location" {% if profile.show_location %}checked{% endif %}>
+                    <label class="form-check-label" for="show_location">Show Location</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show_education" name="show_education" {% if profile.show_education %}checked{% endif %}>
+                    <label class="form-check-label" for="show_education">Show Education</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show_experience" name="show_experience" {% if profile.show_experience %}checked{% endif %}>
+                    <label class="form-check-label" for="show_experience">Show Experience</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show_skills" name="show_skills" {% if profile.show_skills %}checked{% endif %}>
+                    <label class="form-check-label" for="show_skills">Show Skills</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="show_projects" name="show_projects" {% if profile.show_projects %}checked{% endif %}>
+                    <label class="form-check-label" for="show_projects">Show Projects</label>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <hr class="my-4">
             <div class="d-flex justify-content-end gap-2">
-              <a href="{% url 'accounts.profile' username=user.username %}" class="btn btn-outline-secondary">Skip for Now</a>
+              {% if not is_new_account %}
+                <a href="{% url 'accounts.profile' username=user.username %}" class="btn btn-outline-secondary">Cancel</a>
+              {% endif %}
               <button type="submit" class="btn btn-primary px-4">Save Profile</button>
             </div>
           </form>
+
+          {% for edu in profile.educations.all %}
+            <form id="del_edu_{{ edu.id }}" method="post" action="{% url 'accounts.delete_education' item_id=edu.id %}" class="d-none">
+              {% csrf_token %}
+            </form>
+          {% endfor %}
+
+          {% for exp in profile.experiences.all %}
+            <form id="del_exp_{{ exp.id }}" method="post" action="{% url 'accounts.delete_experience' item_id=exp.id %}" class="d-none">
+              {% csrf_token %}
+            </form>
+          {% endfor %}
+
+          {% for sk in profile.skills_list.all %}
+            <form id="del_sk_{{ sk.id }}" method="post" action="{% url 'accounts.delete_skill' item_id=sk.id %}" class="d-none">
+              {% csrf_token %}
+            </form>
+          {% endfor %}
+
+          {% for proj in profile.projects_list.all %}
+            <form id="del_proj_{{ proj.id }}" method="post" action="{% url 'accounts.delete_project' item_id=proj.id %}" class="d-none">
+              {% csrf_token %}
+            </form>
+          {% endfor %}
         </div>
       </div>
     </div>
   </div>
 </section>
+
+{% include 'accounts/profile_modals.html' %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const countrySelect = document.getElementById('country');
+    const stateSelect = document.getElementById('state');
+    const countryCol = document.getElementById('country-col');
+    const stateCol = document.getElementById('state-col');
+    const cityCol = document.getElementById('city-col');
+
+    function updateLocationFields() {
+      if (!countrySelect || !stateSelect || !countryCol || !stateCol || !cityCol) return;
+      const val = (countrySelect.value || '').trim();
+      const isUS = (val === 'United States' || val === 'US' || val === 'USA');
+      if (isUS) {
+        stateCol.classList.remove('d-none');
+        stateSelect.disabled = false;
+        countryCol.className = 'col-md-4';
+        stateCol.className = 'col-md-4';
+        cityCol.className = 'col-md-4';
+      } else {
+        stateCol.classList.add('d-none');
+        stateSelect.disabled = true;
+        stateSelect.value = '';
+        countryCol.className = 'col-md-6';
+        cityCol.className = 'col-md-6';
+      }
+    }
+
+    if (countrySelect) {
+      countrySelect.addEventListener('change', updateLocationFields);
+      updateLocationFields();
+    }
+
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoPlaceholder = document.getElementById('photo-preview-placeholder');
+
+    if (photoInput && photoPreview) {
+      photoInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            photoPreview.src = e.target.result;
+            photoPreview.classList.remove('d-none');
+            if (photoPlaceholder) {
+              photoPlaceholder.classList.add('d-none');
+            }
+          };
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
+    }
+  });
+</script>
 {% endblock content %}

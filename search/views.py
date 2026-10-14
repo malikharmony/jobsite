@@ -32,6 +32,9 @@ def candidates(request):
         user__is_active=True,
     )
 
+    if not (request.user.is_staff or request.user.is_superuser):
+        candidate_profiles = candidate_profiles.filter(is_private=False)
+
     if skills:
         candidate_profiles = candidate_profiles.filter(
             skills__icontains=skills

@@ -71,8 +71,12 @@
                   </div>
                 </form>
                 <div class="dropdown">
-                  <button class="btn text-white p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open profile menu">
-                    <i class="fa-regular fa-circle-user fa-2x"></i>
+                  <button class="btn text-white p-0 d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open profile menu">
+                    {% if user.profile.photo %}
+                      <img src="{{ user.profile.photo.url }}" alt="{{ user.username }}" class="rounded-circle object-fit-cover border border-white" style="width: 32px; height: 32px;">
+                    {% else %}
+                      <i class="fa-regular fa-circle-user fa-2x"></i>
+                    {% endif %}
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
