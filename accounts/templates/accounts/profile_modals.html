@@ -1,0 +1,361 @@
+<div class="modal fade" id="addEducationModal" tabindex="-1" aria-labelledby="addEducationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-primary" id="addEducationModalLabel">
+          <i class="fa-solid fa-graduation-cap me-2"></i>Add Education
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'accounts.add_education' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" class="form-control" name="school" required placeholder="School / University" aria-label="School or University">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <input type="text" class="form-control" name="degree" placeholder="Degree" aria-label="Degree">
+            </div>
+            <div class="col-md-6">
+              <input type="text" class="form-control" name="major" placeholder="Major" aria-label="Major">
+            </div>
+          </div>
+          <div class="mb-3" style="max-width: 140px;">
+            <input type="text" class="form-control" name="gpa" placeholder="GPA" aria-label="GPA">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text text-muted small">Start</span>
+                <input type="date" class="form-control" name="start_date" aria-label="Start Date">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text text-muted small">End</span>
+                <input type="date" class="form-control" name="end_date" id="add_edu_end_date" aria-label="End Date">
+              </div>
+            </div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="add_edu_current" name="is_current" onchange="document.getElementById('add_edu_end_date').disabled = this.checked;">
+            <label class="form-check-label text-muted small" for="add_edu_current">I am presently enrolled here</label>
+          </div>
+          <div class="mb-2">
+            <textarea class="form-control" name="description" rows="3" placeholder="Description, coursework, or honors..." aria-label="Description"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4">Add Education</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addExperienceModal" tabindex="-1" aria-labelledby="addExperienceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-primary" id="addExperienceModalLabel">
+          <i class="fa-solid fa-briefcase me-2"></i>Add Experience
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'accounts.add_experience' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" class="form-control" name="title" required placeholder="Job Title" aria-label="Job Title">
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" name="company" required placeholder="Company Name *" aria-label="Company Name">
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" name="location" placeholder="Location" aria-label="Location">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text text-muted small">Start</span>
+                <input type="date" class="form-control" name="start_date" aria-label="Start Date">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text text-muted small">End</span>
+                <input type="date" class="form-control" name="end_date" id="add_exp_end_date" aria-label="End Date">
+              </div>
+            </div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="add_exp_current" name="is_current" onchange="document.getElementById('add_exp_end_date').disabled = this.checked;">
+            <label class="form-check-label text-muted small" for="add_exp_current">I am presently working in this role</label>
+          </div>
+          <div class="mb-2">
+            <textarea class="form-control" name="description" rows="3" placeholder="Responsibilities, achievements, impact..." aria-label="Description"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4">Add Experience</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addSkillModal" tabindex="-1" aria-labelledby="addSkillModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-primary" id="addSkillModalLabel">
+          <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Add Skill
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'accounts.add_skill' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" class="form-control" name="name" required placeholder="Skill Name" aria-label="Skill Name">
+          </div>
+          <div class="mb-2">
+            <select class="form-select" name="proficiency" aria-label="Proficiency Level">
+              <option value="">Proficiency Level (optional)</option>
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+              <option value="Expert">Expert</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-3">Add Skill</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-primary" id="addProjectModalLabel">
+          <i class="fa-solid fa-folder-open me-2"></i>Add Project
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'accounts.add_project' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" class="form-control" name="title" required placeholder="Project Title" aria-label="Project Title">
+          </div>
+          <div class="mb-3">
+            <input type="text" class="form-control" name="technologies" placeholder="Technologies" aria-label="Technologies">
+          </div>
+          <div class="mb-3">
+            <input type="url" class="form-control" name="link" placeholder="Project URL (e.g. https://github.com/...)" aria-label="Project URL">
+          </div>
+          <div class="mb-2">
+            <textarea class="form-control" name="description" rows="3" placeholder="Project description and key contributions..." aria-label="Description"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4">Add Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for edu in profile.educations.all %}
+  <div class="modal fade" id="editEducationModal_{{ edu.id }}" tabindex="-1" aria-labelledby="editEducationModalLabel_{{ edu.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-primary" id="editEducationModalLabel_{{ edu.id }}">
+            <i class="fa-solid fa-graduation-cap me-2"></i>Edit Education
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'accounts.edit_education' item_id=edu.id %}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" class="form-control" name="school" value="{{ edu.school }}" required placeholder="School / University" aria-label="School or University">
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="degree" value="{{ edu.degree }}" placeholder="Degree" aria-label="Degree">
+              </div>
+              <div class="col-md-6">
+                <input type="text" class="form-control" name="major" value="{{ edu.major }}" placeholder="Major" aria-label="Major">
+              </div>
+            </div>
+            <div class="mb-3" style="max-width: 140px;">
+              <input type="text" class="form-control" name="gpa" value="{{ edu.gpa }}" placeholder="GPA" aria-label="GPA">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text text-muted small">Start</span>
+                  <input type="date" class="form-control" name="start_date" value="{{ edu.start_date|date:'Y-m-d' }}" aria-label="Start Date">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text text-muted small">End</span>
+                  <input type="date" class="form-control" name="end_date" id="edit_edu_end_{{ edu.id }}" value="{{ edu.end_date|date:'Y-m-d' }}" {% if edu.is_current %}disabled{% endif %} aria-label="End Date">
+                </div>
+              </div>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="edit_edu_curr_{{ edu.id }}" name="is_current" {% if edu.is_current %}checked{% endif %} onchange="document.getElementById('edit_edu_end_{{ edu.id }}').disabled = this.checked;">
+              <label class="form-check-label text-muted small" for="edit_edu_curr_{{ edu.id }}">I am presently enrolled here</label>
+            </div>
+            <div class="mb-2">
+              <textarea class="form-control" name="description" rows="3" placeholder="Description, coursework, or honors..." aria-label="Description">{{ edu.description }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+{% for exp in profile.experiences.all %}
+  <div class="modal fade" id="editExperienceModal_{{ exp.id }}" tabindex="-1" aria-labelledby="editExperienceModalLabel_{{ exp.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-primary" id="editExperienceModalLabel_{{ exp.id }}">
+            <i class="fa-solid fa-briefcase me-2"></i>Edit Experience
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'accounts.edit_experience' item_id=exp.id %}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" class="form-control" name="title" value="{{ exp.title }}" required placeholder="Job Title" aria-label="Job Title">
+            </div>
+            <div class="mb-3">
+              <input type="text" class="form-control" name="company" value="{{ exp.company }}" required placeholder="Company Name" aria-label="Company Name">
+            </div>
+            <div class="mb-3">
+              <input type="text" class="form-control" name="location" value="{{ exp.location }}" placeholder="Location" aria-label="Location">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text text-muted small">Start</span>
+                  <input type="date" class="form-control" name="start_date" value="{{ exp.start_date|date:'Y-m-d' }}" aria-label="Start Date">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text text-muted small">End</span>
+                  <input type="date" class="form-control" name="end_date" id="edit_exp_end_{{ exp.id }}" value="{{ exp.end_date|date:'Y-m-d' }}" {% if exp.is_current %}disabled{% endif %} aria-label="End Date">
+                </div>
+              </div>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="edit_exp_curr_{{ exp.id }}" name="is_current" {% if exp.is_current %}checked{% endif %} onchange="document.getElementById('edit_exp_end_{{ exp.id }}').disabled = this.checked;">
+              <label class="form-check-label text-muted small" for="edit_exp_curr_{{ exp.id }}">I am presently working in this role</label>
+            </div>
+            <div class="mb-2">
+              <textarea class="form-control" name="description" rows="3" placeholder="Responsibilities, achievements, impact..." aria-label="Description">{{ exp.description }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+{% for sk in profile.skills_list.all %}
+  <div class="modal fade" id="editSkillModal_{{ sk.id }}" tabindex="-1" aria-labelledby="editSkillModalLabel_{{ sk.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-primary" id="editSkillModalLabel_{{ sk.id }}">
+            <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Edit Skill
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'accounts.edit_skill' item_id=sk.id %}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" class="form-control" name="name" value="{{ sk.name }}" required placeholder="Skill Name" aria-label="Skill Name">
+            </div>
+            <div class="mb-2">
+              <select class="form-select" name="proficiency" aria-label="Proficiency Level">
+                <option value="" {% if not sk.proficiency %}selected{% endif %}>Proficiency Level (optional)</option>
+                <option value="Beginner" {% if sk.proficiency == 'Beginner' %}selected{% endif %}>Beginner</option>
+                <option value="Intermediate" {% if sk.proficiency == 'Intermediate' %}selected{% endif %}>Intermediate</option>
+                <option value="Advanced" {% if sk.proficiency == 'Advanced' %}selected{% endif %}>Advanced</option>
+                <option value="Expert" {% if sk.proficiency == 'Expert' %}selected{% endif %}>Expert</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-3">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+{% for proj in profile.projects_list.all %}
+  <div class="modal fade" id="editProjectModal_{{ proj.id }}" tabindex="-1" aria-labelledby="editProjectModalLabel_{{ proj.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-primary" id="editProjectModalLabel_{{ proj.id }}">
+            <i class="fa-solid fa-folder-open me-2"></i>Edit Project
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'accounts.edit_project' item_id=proj.id %}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <input type="text" class="form-control" name="title" value="{{ proj.title }}" required placeholder="Project Title" aria-label="Project Title">
+            </div>
+            <div class="mb-3">
+              <input type="text" class="form-control" name="technologies" value="{{ proj.technologies }}" placeholder="Technologies" aria-label="Technologies">
+            </div>
+            <div class="mb-3">
+              <input type="url" class="form-control" name="link" value="{{ proj.link }}" placeholder="Project URL (e.g. https://github.com/...)" aria-label="Project URL">
+            </div>
+            <div class="mb-2">
+              <textarea class="form-control" name="description" rows="3" placeholder="Project description and key contributions..." aria-label="Description">{{ proj.description }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endfor %}

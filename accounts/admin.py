@@ -3,7 +3,27 @@ from django.contrib.auth.admin import UserAdmin as BuiltInUserAdmin
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from .models import Profile, Report
+from .models import Profile, Report, Education, Experience, Skill, Project
+
+
+class EducationInline(admin.TabularInline):
+    model = Education
+    extra = 0
+
+
+class ExperienceInline(admin.TabularInline):
+    model = Experience
+    extra = 0
+
+
+class SkillInline(admin.TabularInline):
+    model = Skill
+    extra = 0
+
+
+class ProjectInline(admin.TabularInline):
+    model = Project
+    extra = 0
 
 
 class ProfileInline(admin.StackedInline):
@@ -13,7 +33,15 @@ class ProfileInline(admin.StackedInline):
     fieldsets = (
         ('Platform role', {'fields': ('role',)}),
         ('Professional profile', {
-            'fields': ('headline', 'about', 'education', 'experience', 'skills'),
+            'fields': ('photo', 'headline', 'about', 'education', 'experience', 'skills', 'city', 'state', 'country', 'location', 'projects'),
+            'classes': ('collapse',),
+        }),
+        ('Privacy settings', {
+            'fields': (
+                'is_private', 'show_email', 'show_location',
+                'show_education', 'show_experience',
+                'show_skills', 'show_projects',
+            ),
             'classes': ('collapse',),
         }),
     )
@@ -39,9 +67,47 @@ class UserAdmin(BuiltInUserAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'role', 'headline')
-    list_filter = ('role',)
+    inlines = (EducationInline, ExperienceInline, SkillInline, ProjectInline)
+    list_display = ('user', 'role', 'is_private', 'headline')
+    list_filter = ('role', 'is_private')
     search_fields = ('user__username', 'user__email', 'headline', 'skills')
+    fieldsets = (
+        ('User & Role', {'fields': ('user', 'role')}),
+        ('Professional Details', {
+            'fields': ('photo', 'headline', 'about', 'education', 'experience', 'skills', 'city', 'state', 'country', 'location', 'projects'),
+        }),
+        ('Privacy Settings', {
+            'fields': (
+                'is_private', 'show_email', 'show_location',
+                'show_education', 'show_experience',
+                'show_skills', 'show_projects',
+            ),
+        }),
+    )
+
+
+@admin.register(Education)
+class EducationAdmin(admin.ModelAdmin):
+    list_display = ('school', 'degree', 'major', 'gpa', 'enrollment_period', 'profile')
+    search_fields = ('school', 'major', 'profile__user__username')
+
+
+@admin.register(Experience)
+class ExperienceAdmin(admin.ModelAdmin):
+    list_display = ('title', 'company', 'location', 'period', 'profile')
+    search_fields = ('title', 'company', 'profile__user__username')
+
+
+@admin.register(Skill)
+class SkillAdmin(admin.ModelAdmin):
+    list_display = ('name', 'proficiency', 'profile')
+    search_fields = ('name', 'profile__user__username')
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ('title', 'technologies', 'profile')
+    search_fields = ('title', 'technologies', 'profile__user__username')
 
 
 # ability to put reports under review

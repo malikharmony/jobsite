@@ -2,15 +2,83 @@
 {% load static %}
 
 {% block content %}
+{% if not can_view_profile %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow-sm border-0 text-center p-5">
+        <div class="mb-3">
+          <div class="mx-auto rounded-circle bg-light d-flex align-items-center justify-content-center border" style="width: 100px; height: 100px;">
+            <i class="fa-solid fa-lock fa-3x text-secondary" aria-hidden="true"></i>
+          </div>
+        </div>
+        <h2 class="text-primary fw-bold mb-2">{{ full_name }}</h2>
+        <div class="mb-3">
+          <span class="badge bg-secondary px-3 py-2">
+            <i class="fa-solid fa-lock me-1"></i>Private Profile
+          </span>
+        </div>
+        <p class="text-muted mb-4">This profile is private. The user has chosen to restrict who can view their profile details.</p>
+        <div>
+          <a href="{% url 'jobs.index' %}" class="btn btn-primary rounded-pill px-4">Browse Jobs</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% else %}
 <section class="container py-5">
   <div class="row gy-4">
     <div class="col-lg-4 col-md-5">
       <div class="d-flex flex-column align-items-start">
-        <div class="border border-2 border-primary rounded p-3 mb-3 d-flex align-items-center justify-content-center" style="width: 180px; height: 180px; background-color: #f8f9fa;">
-          <i class="fa-regular fa-user fa-5x text-primary" aria-hidden="true"></i>
-        </div>
+        {% if profile.photo %}
+          <div class="border border-2 border-primary rounded mb-3 overflow-hidden d-flex align-items-center justify-content-center bg-light" style="width: 180px; height: 180px;">
+            <img src="{{ profile.photo.url }}" alt="{{ full_name }}" class="w-100 h-100 object-fit-cover">
+          </div>
+        {% else %}
+          <div class="border border-2 border-primary rounded p-3 mb-3 d-flex align-items-center justify-content-center" style="width: 180px; height: 180px; background-color: #f8f9fa;">
+            <i class="fa-regular fa-user fa-5x text-primary" aria-hidden="true"></i>
+          </div>
+        {% endif %}
 
         <h2 class="text-primary fw-bold mb-1">{{ full_name }}</h2>
+
+        {% if profile.is_private %}
+          <div class="mb-2 d-flex flex-wrap gap-1">
+            <span class="badge bg-secondary">
+              <i class="fa-solid fa-lock me-1"></i>Private Profile
+            </span>
+            {% if is_admin and not is_owner %}
+              <span class="badge bg-warning text-dark">
+                <i class="fa-solid fa-shield-halved me-1"></i>Admin Viewing
+              </span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if is_owner or is_admin or profile.show_email %}
+          <p class="text-secondary small mb-1">
+            <i class="fa-regular fa-envelope me-2"></i>{{ profile_user.email }}
+            {% if is_owner and not profile.show_email %}
+              <span class="badge bg-light text-muted border ms-1">Hidden from recruiters</span>
+            {% endif %}
+          </p>
+        {% endif %}
+
+        {% if is_owner or is_admin or profile.show_location %}
+          {% if profile.location %}
+            <p class="text-secondary small mb-2">
+              <i class="fa-solid fa-location-dot me-2"></i>{{ profile.location }}
+              {% if is_owner and not profile.show_location %}
+                <span class="badge bg-light text-muted border ms-1">Hidden from recruiters</span>
+              {% endif %}
+            </p>
+          {% elif is_owner %}
+            <p class="text-muted small fst-italic mb-2">
+              <i class="fa-solid fa-location-dot me-2"></i>No location set
+            </p>
+          {% endif %}
+        {% endif %}
 
         {% if profile.headline %}
           <p class="text-primary mb-3">{{ profile.headline }}</p>
@@ -27,15 +95,6 @@
     <div class="col-lg-8 col-md-7">
       <div class="d-flex flex-column gap-4">
         <div>
-          <h3 class="text-primary fw-bold fs-4 mb-2">Location</h3>
-          {% if profile.location %}
-            <p class="text-secondary mb-0">{{ profile.location }}</p>
-          {% else %}
-            <p class="text-muted fst-italic mb-0">No location provided yet.</p>
-          {% endif %}
-        </div>
-
-        <div>
           <h3 class="text-primary fw-bold fs-4 mb-2">About</h3>
           {% if profile.about %}
             <p class="text-secondary mb-0">{{ profile.about|linebreaksbr }}</p>
@@ -44,43 +103,220 @@
           {% endif %}
         </div>
 
-        <div>
-          <h3 class="text-primary fw-bold fs-4 mb-2">Education</h3>
-          {% if profile.education %}
-            <p class="text-secondary mb-0">{{ profile.education|linebreaksbr }}</p>
-          {% else %}
-            <p class="text-muted fst-italic mb-0">No education history added yet.</p>
-          {% endif %}
-        </div>
+        {% if is_owner or is_admin or profile.show_education %}
+          <div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="text-primary fw-bold fs-4 mb-0">
+                Education
+                {% if is_owner and not profile.show_education %}
+                  <span class="badge bg-light text-muted border fs-6 fw-normal ms-2">Hidden from recruiters</span>
+                {% endif %}
+              </h3>
+              {% if is_owner %}
+                <a href="{% url 'accounts.edit_profile' %}#education-section" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                  <i class="fa-solid fa-plus me-1"></i> Add Education
+                </a>
+              {% endif %}
+            </div>
 
-        <div>
-          <h3 class="text-primary fw-bold fs-4 mb-2">Experience</h3>
-          {% if profile.experience %}
-            <p class="text-secondary mb-0">{{ profile.experience|linebreaksbr }}</p>
-          {% else %}
-            <p class="text-muted fst-italic mb-0">No experience details added yet.</p>
-          {% endif %}
-        </div>
+            {% if profile.educations.all %}
+              <div class="d-flex flex-column gap-3">
+                {% for edu in profile.educations.all %}
+                  <div class="card border shadow-sm rounded-3 p-3">
+                    <h5 class="fw-bold text-dark mb-1">{{ edu.school }}</h5>
+                    <div class="text-secondary mb-1">
+                      {% if edu.degree %}{{ edu.degree }}{% endif %}
+                      {% if edu.degree and edu.major %} in {% endif %}
+                      {% if edu.major %}{{ edu.major }}{% endif %}
+                    </div>
+                    {% if edu.enrollment_period %}
+                      <p class="text-muted small mb-1">
+                        <i class="fa-regular fa-calendar me-1"></i>{{ edu.enrollment_period }}
+                      </p>
+                    {% endif %}
+                    {% if edu.gpa %}
+                      <span class="badge bg-light text-dark border mb-2 align-self-start">GPA: {{ edu.gpa }}</span>
+                    {% endif %}
+                    {% if edu.description %}
+                      <p class="text-secondary small mb-0">{{ edu.description|linebreaksbr }}</p>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% elif profile.education %}
+              <p class="text-secondary mb-0">{{ profile.education|linebreaksbr }}</p>
+            {% else %}
+              <p class="text-muted fst-italic mb-0">No education history added yet.</p>
+            {% endif %}
+          </div>
+        {% endif %}
 
-        <div>
-          <h3 class="text-primary fw-bold fs-4 mb-2">Skills</h3>
-          {% if profile.skills %}
-            <p class="text-secondary mb-0">{{ profile.skills|linebreaksbr }}</p>
-          {% else %}
-            <p class="text-muted fst-italic mb-0">No skills listed yet.</p>
-          {% endif %}
-        </div>
+        {% if is_owner or is_admin or profile.show_experience %}
+          <div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="text-primary fw-bold fs-4 mb-0">
+                Experience
+                {% if is_owner and not profile.show_experience %}
+                  <span class="badge bg-light text-muted border fs-6 fw-normal ms-2">Hidden from recruiters</span>
+                {% endif %}
+              </h3>
+              {% if is_owner %}
+                <a href="{% url 'accounts.edit_profile' %}#experience-section" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                  <i class="fa-solid fa-plus me-1"></i> Add Experience
+                </a>
+              {% endif %}
+            </div>
 
-        <div>
-          <h3 class="text-primary fw-bold fs-4 mb-2">Projects</h3>
-          {% if profile.projects %}
-            <p class="text-secondary mb-0">{{ profile.projects|linebreaksbr }}</p>
-          {% else %}
-            <p class="text-muted fst-italic mb-0">No projects added yet.</p>
-          {% endif %}
-        </div>
+            {% if profile.experiences.all %}
+              <div class="d-flex flex-column gap-3">
+                {% for exp in profile.experiences.all %}
+                  <div class="card border shadow-sm rounded-3 p-3">
+                    <h5 class="fw-bold text-dark mb-1">{{ exp.title }}</h5>
+                    <h6 class="text-primary mb-1">
+                      {{ exp.company }}
+                      {% if exp.location %}
+                        &middot; <span class="text-muted fw-normal small">{{ exp.location }}</span>
+                      {% endif %}
+                    </h6>
+                    {% if exp.period %}
+                      <p class="text-muted small mb-2">
+                        <i class="fa-regular fa-calendar me-1"></i>{{ exp.period }}
+                      </p>
+                    {% endif %}
+                    {% if exp.description %}
+                      <p class="text-secondary small mb-0">{{ exp.description|linebreaksbr }}</p>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% elif profile.experience %}
+              <p class="text-secondary mb-0">{{ profile.experience|linebreaksbr }}</p>
+            {% else %}
+              <p class="text-muted fst-italic mb-0">No experience details added yet.</p>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if is_owner or is_admin or profile.show_skills %}
+          <div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="text-primary fw-bold fs-4 mb-0">
+                Skills
+                {% if is_owner and not profile.show_skills %}
+                  <span class="badge bg-light text-muted border fs-6 fw-normal ms-2">Hidden from recruiters</span>
+                {% endif %}
+              </h3>
+              {% if is_owner %}
+                <a href="{% url 'accounts.edit_profile' %}#skills-section" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                  <i class="fa-solid fa-plus me-1"></i> Add Skill
+                </a>
+              {% endif %}
+            </div>
+
+            {% if profile.skills_list.all %}
+              <div class="d-flex flex-wrap gap-2">
+                {% for sk in profile.skills_list.all %}
+                  <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fs-6 d-inline-flex align-items-center gap-2">
+                    {{ sk.name }}
+                    {% if sk.proficiency %}
+                      <span class="badge bg-primary text-white rounded-pill small" style="font-size: 0.7rem;">{{ sk.proficiency }}</span>
+                    {% endif %}
+                  </span>
+                {% endfor %}
+              </div>
+            {% elif profile.skills %}
+              <p class="text-secondary mb-0">{{ profile.skills|linebreaksbr }}</p>
+            {% else %}
+              <p class="text-muted fst-italic mb-0">No skills listed yet.</p>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if is_owner or is_admin or profile.show_projects %}
+          <div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h3 class="text-primary fw-bold fs-4 mb-0">
+                Projects
+                {% if is_owner and not profile.show_projects %}
+                  <span class="badge bg-light text-muted border fs-6 fw-normal ms-2">Hidden from recruiters</span>
+                {% endif %}
+              </h3>
+              {% if is_owner %}
+                <a href="{% url 'accounts.edit_profile' %}#projects-section" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                  <i class="fa-solid fa-plus me-1"></i> Add Project
+                </a>
+              {% endif %}
+            </div>
+
+            {% if profile.projects_list.all %}
+              <div class="d-flex flex-column gap-3">
+                {% for proj in profile.projects_list.all %}
+                  <div class="card border shadow-sm rounded-3 p-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <h5 class="fw-bold text-dark mb-0">{{ proj.title }}</h5>
+                      {% if proj.link %}
+                        <a href="{{ proj.link }}" target="_blank" rel="noopener noreferrer" class="text-primary small" title="Open project link">
+                          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                      {% endif %}
+                    </div>
+                    {% if proj.technologies %}
+                      <p class="text-muted small mb-2">
+                        <i class="fa-solid fa-code me-1"></i>{{ proj.technologies }}
+                      </p>
+                    {% endif %}
+                    {% if proj.description %}
+                      <p class="text-secondary small mb-0">{{ proj.description|linebreaksbr }}</p>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% elif profile.projects %}
+              <p class="text-secondary mb-0">{{ profile.projects|linebreaksbr }}</p>
+            {% else %}
+              <p class="text-muted fst-italic mb-0">No projects added yet.</p>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </section>
+
+{% if is_admin and profile.is_private and not is_owner %}
+  <div class="modal fade" id="adminPrivateNoticeModal" tabindex="-1" aria-labelledby="adminPrivateNoticeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fs-6 fw-bold text-dark d-flex align-items-center gap-2" id="adminPrivateNoticeModalLabel">
+            <i class="fa-solid fa-shield-halved text-warning"></i>
+            Admin Notice
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-secondary small pt-2">
+          You are viewing a <strong>private profile</strong>. This profile is hidden from recruiters and the public.
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-sm btn-primary w-100" data-bs-dismiss="modal">Got it</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function triggerAdminPrivateNotice() {
+      var modalElement = document.getElementById('adminPrivateNoticeModal');
+      if (modalElement && typeof bootstrap !== 'undefined') {
+        var modalInstance = new bootstrap.Modal(modalElement);
+        modalInstance.show();
+      }
+    }
+    if (document.readyState === 'complete') {
+      triggerAdminPrivateNotice();
+    } else {
+      window.addEventListener('load', triggerAdminPrivateNotice);
+    }
+  </script>
+{% endif %}
+{% endif %}
 {% endblock content %}

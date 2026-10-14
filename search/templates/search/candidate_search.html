@@ -68,20 +68,32 @@
           <p>{{ candidate.headline }}</p>
         {% endif %}
 
-        <p>
-          <strong>Location:</strong>
-          {{ candidate.location }}
-        </p>
+        {% if user.is_staff or user.is_superuser or candidate.show_location %}
+          {% if candidate.location %}
+            <p>
+              <strong>Location:</strong>
+              {{ candidate.location }}
+            </p>
+          {% endif %}
+        {% endif %}
 
-        <p>
-          <strong>Skills:</strong>
-          {{ candidate.skills }}
-        </p>
+        {% if user.is_staff or user.is_superuser or candidate.show_skills %}
+          {% if candidate.skills %}
+            <p>
+              <strong>Skills:</strong>
+              {{ candidate.skills }}
+            </p>
+          {% endif %}
+        {% endif %}
 
-        <p>
-          <strong>Projects:</strong>
-          {{ candidate.projects }}
-        </p>
+        {% if user.is_staff or user.is_superuser or candidate.show_projects %}
+          {% if candidate.projects %}
+            <p>
+              <strong>Projects:</strong>
+              {{ candidate.projects }}
+            </p>
+          {% endif %}
+        {% endif %}
 
         <a href="{% url 'accounts.profile' username=candidate.user.username %}"
            class="btn btn-outline-primary">
