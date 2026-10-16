@@ -141,6 +141,118 @@
         <p class="mb-0 text-muted">&copy; 2026 LockedIn. All rights reserved.</p>
       </div>
     </footer>
+
+    <!-- Achievement Toast Notification Container (Top Right) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1095;" id="achievementToastContainer">
+      {% if user.is_authenticated and unviewed_achievements %}
+        {% for ua in unviewed_achievements %}
+          <div class="toast achievement-toast border-0 shadow-lg mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="8000" data-achievement-id="{{ ua.id }}">
+            <div class="toast-header bg-warning bg-opacity-25 border-0">
+              <span class="rounded p-1 bg-warning text-dark me-2 d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                <i class="fa-solid fa-trophy small"></i>
+              </span>
+              <strong class="me-auto text-dark">Achievement Unlocked!</strong>
+              <span class="badge bg-warning text-dark rounded-pill me-2">+{{ ua.achievement.xp_reward }} XP</span>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body bg-white rounded-bottom">
+              <div class="d-flex align-items-start gap-2">
+                <i class="{{ ua.achievement.icon }} text-warning fs-3 mt-1"></i>
+                <div>
+                  <h6 class="fw-bold mb-1 text-primary">{{ ua.achievement.title }}</h6>
+                  <p class="text-muted small mb-0">{{ ua.achievement.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+    {% if user.is_authenticated %}
+    <script>
+      (function() {
+        const container = document.getElementById('achievementToastContainer');
+        const displayedIds = new Set();
+
+        function markAchievementViewed(achievementId) {
+          fetch(`/leveling/api/mark-viewed/${achievementId}/`, {
+            method: 'GET',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+            }
+          }).catch(err => console.debug('Could not mark achievement as viewed', err));
+        }
+
+        function createAndShowToast(ach) {
+          if (displayedIds.has(ach.id)) return;
+          displayedIds.add(ach.id);
+
+          const toastDiv = document.createElement('div');
+          toastDiv.className = 'toast achievement-toast border-0 shadow-lg mb-2';
+          toastDiv.setAttribute('role', 'alert');
+          toastDiv.setAttribute('aria-live', 'assertive');
+          toastDiv.setAttribute('aria-atomic', 'true');
+          toastDiv.setAttribute('data-bs-autohide', 'true');
+          toastDiv.setAttribute('data-bs-delay', '8000');
+          toastDiv.setAttribute('data-achievement-id', ach.id);
+
+          toastDiv.innerHTML = `
+            <div class="toast-header bg-warning bg-opacity-25 border-0">
+              <span class="rounded p-1 bg-warning text-dark me-2 d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                <i class="fa-solid fa-trophy small"></i>
+              </span>
+              <strong class="me-auto text-dark">Achievement Unlocked!</strong>
+              <span class="badge bg-warning text-dark rounded-pill me-2">+${ach.xp_reward} XP</span>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body bg-white rounded-bottom">
+              <div class="d-flex align-items-start gap-2">
+                <i class="${ach.icon} text-warning fs-3 mt-1"></i>
+                <div>
+                  <h6 class="fw-bold mb-1 text-primary">${ach.title}</h6>
+                  <p class="text-muted small mb-0">${ach.description}</p>
+                </div>
+              </div>
+            </div>
+          `;
+
+          container.appendChild(toastDiv);
+          const bsToast = new bootstrap.Toast(toastDiv);
+          bsToast.show();
+          markAchievementViewed(ach.id);
+        }
+
+        // Initialize any server-rendered toasts on page load
+        document.querySelectorAll('#achievementToastContainer .toast').forEach(toastEl => {
+          const achId = toastEl.getAttribute('data-achievement-id');
+          if (achId) {
+            displayedIds.add(parseInt(achId, 10));
+            markAchievementViewed(achId);
+          }
+          const bsToast = new bootstrap.Toast(toastEl);
+          bsToast.show();
+        });
+
+        // 15-second background polling
+        function pollAchievements() {
+          fetch('/leveling/api/unviewed/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.achievements && data.achievements.length > 0) {
+              data.achievements.forEach(ach => createAndShowToast(ach));
+            }
+          })
+          .catch(err => console.debug('Polling check error:', err));
+        }
+
+        setInterval(pollAchievements, 15000);
+      })();
+    </script>
+    {% endif %}
   </body>
 </html>

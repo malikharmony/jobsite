@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-from .models import UserQuest
+from django.http import JsonResponse
+from .models import UserQuest, UserAchievement
 from .services import (
     get_or_create_user_level_profile,
     ensure_user_quests,
@@ -56,3 +57,36 @@ def claim_reward(request, user_quest_id):
         messages.error(request, msg)
 
     return redirect('leveling:dashboard')
+
+
+@login_required
+def get_unviewed_achievements(request):
+    """API endpoint polled by client to fetch newly unlocked achievements."""
+    unviewed = UserAchievement.objects.filter(
+        user=request.user,
+        unlocked=True,
+        viewed=False
+    ).select_related('achievement')
+
+    data = [
+        {
+            'id': ua.id,
+            'title': ua.achievement.title,
+            'description': ua.achievement.description,
+            'icon': ua.achievement.icon,
+            'xp_reward': ua.achievement.xp_reward,
+            'category': ua.achievement.get_category_display(),
+        }
+        for ua in unviewed
+    ]
+    return JsonResponse({'achievements': data})
+
+
+@login_required
+def mark_achievement_viewed(request, user_achievement_id):
+    """API endpoint to acknowledge and mark an unlocked achievement as viewed."""
+    updated = UserAchievement.objects.filter(
+        id=user_achievement_id,
+        user=request.user
+    ).update(viewed=True)
+    return JsonResponse({'success': bool(updated)})

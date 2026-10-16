@@ -207,3 +207,51 @@ class LevelingFrameworkTests(TestCase):
         self.assertContains(response, 'Weekly Quests')
         self.assertContains(response, 'Badges & Achievements')
         self.assertContains(response, 'Job Seeker Novice')
+
+    def test_unviewed_achievements_api_and_marking_viewed(self):
+        # Anonymous redirected
+        response = self.client.get(reverse('leveling:api_unviewed'))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.login(username='applicant_bob', password='password123')
+        ensure_user_achievements(self.applicant)
+
+        # Initially no unviewed unlocked achievements
+        res = self.client.get(reverse('leveling:api_unviewed'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['achievements'], [])
+
+        # Trigger first step achievement
+        JobApplication.objects.create(job=self.job1, applicant=self.applicant)
+
+        # Now API should return the unlocked achievement
+        res = self.client.get(reverse('leveling:api_unviewed'))
+        self.assertEqual(res.status_code, 200)
+        achievements = res.json()['achievements']
+        self.assertEqual(len(achievements), 1)
+        ach_data = achievements[0]
+        self.assertEqual(ach_data['title'], 'First Step')
+
+        # Mark as viewed
+        mark_res = self.client.get(reverse('leveling:api_mark_viewed', kwargs={'user_achievement_id': ach_data['id']}))
+        self.assertEqual(mark_res.status_code, 200)
+        self.assertTrue(mark_res.json()['success'])
+
+        # Now API should return empty list
+        res_after = self.client.get(reverse('leveling:api_unviewed'))
+        self.assertEqual(res_after.json()['achievements'], [])
+
+    def test_context_processor_toast_in_html(self):
+        self.client.login(username='applicant_bob', password='password123')
+        ensure_user_achievements(self.applicant)
+
+        # Unlock achievement
+        JobApplication.objects.create(job=self.job1, applicant=self.applicant)
+
+        # Visiting jobs index should include the toast
+        res = self.client.get(reverse('jobs.index'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'achievement-toast')
+        self.assertContains(res, 'Achievement Unlocked!')
+        self.assertContains(res, 'First Step')
+
