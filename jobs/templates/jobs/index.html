@@ -13,6 +13,59 @@
       </span>
     </div>
 
+    {% if template_data.demo_mode %}
+    <!-- Tutorial Demo Banner -->
+    <div class="card border-0 shadow mb-4 text-dark" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 6px solid #16a34a !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-success text-white px-3 py-1 rounded-pill">
+            <i class="fa-solid fa-graduation-cap me-1"></i> Tutorial Mission: First Application
+          </span>
+          <h2 class="h5 fw-bold text-success-emphasis mb-0">Learn How to Apply</h2>
+        </div>
+        <p class="text-secondary mb-0">
+          Welcome to Job Discovery! To get you familiar with applying on LockedIn, we've set up a practice role below:
+          <strong class="text-dark">Software Engineer - Google (Demo)</strong>. Click <strong>"Practice Apply"</strong> to inspect the details, submit your demo application, and unlock your <strong>"First Step"</strong> achievement (+50 XP)!
+        </p>
+      </div>
+    </div>
+
+    {% if template_data.demo_job %}
+    <div class="card border-2 border-success shadow mb-4 overflow-hidden" style="background-color: #f8fafc;">
+      <div class="card-header bg-success text-white py-2 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="fa-solid fa-star me-1 text-warning"></i> Practice Job Posting</span>
+        <span class="badge bg-white text-success fw-bold">Tutorial Role</span>
+      </div>
+      <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
+          <div>
+            <h3 class="h4 fw-bold text-primary mb-1">{{ template_data.demo_job.title }}</h3>
+            <div class="text-muted small">
+              <span class="me-3"><i class="fa-solid fa-location-dot me-1"></i>{{ template_data.demo_job.location }}</span>
+              <span class="me-3"><i class="fa-solid fa-briefcase me-1"></i>{{ template_data.demo_job.get_work_type_display }}</span>
+              <span><i class="fa-solid fa-dollar-sign me-1"></i>${{ template_data.demo_job.salary_min }} - ${{ template_data.demo_job.salary_max }}</span>
+            </div>
+          </div>
+          <div>
+            {% if template_data.demo_applied %}
+              <span class="badge bg-secondary px-3 py-2 fs-6">
+                <i class="fa-solid fa-check me-1"></i> Demo Applied
+              </span>
+            {% else %}
+              <a href="{% url 'jobs.detail' id=template_data.demo_job.id %}?demo=1" class="btn btn-success fw-bold px-4 shadow-sm">
+                Practice Apply <i class="fa-solid fa-arrow-right ms-1"></i>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+        <p class="text-secondary small mb-0">
+          {{ template_data.demo_job.description|truncatechars:200 }}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body p-4">
         <form method="get" action="{% url 'jobs.index' %}" class="row g-3">
@@ -101,7 +154,7 @@
 
               <div class="job-card-footer d-flex justify-content-between align-items-center gap-3 mt-auto">
                 <span class="recruiter-name">{{ job.recruiter.username }}</span>
-                <a href="{% url 'jobs.detail' id=job.id %}" class="btn btn-primary btn-sm px-3">
+                <a href="{% url 'jobs.detail' id=job.id %}?from=discovery" class="btn btn-primary btn-sm px-3">
                   View role
                 </a>
               </div>

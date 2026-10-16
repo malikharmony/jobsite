@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+
+      <!-- Employer / Company Hero Card -->
+      <div class="card border-0 shadow-sm overflow-hidden mb-4 rounded-4">
+        <div class="bg-primary text-white p-4 p-md-5" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);">
+          <div class="d-flex flex-column flex-md-row align-items-center align-items-md-start gap-4">
+            
+            <!-- Company Logo -->
+            <div class="flex-shrink-0">
+              {% if profile.photo %}
+                <img src="{{ profile.photo.url }}" alt="{{ profile.display_name }}" class="rounded-circle border border-3 border-white shadow object-fit-cover bg-white" style="width: 110px; height: 110px;">
+              {% else %}
+                <div class="rounded-circle border border-3 border-white shadow bg-white d-flex align-items-center justify-content-center text-primary" style="width: 110px; height: 110px;">
+                  <i class="fa-solid fa-building fa-3x"></i>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Company Info Header -->
+            <div class="flex-grow-1 text-center text-md-start">
+              <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                <span class="badge bg-white text-primary fw-bold px-3 py-1 rounded-pill">
+                  <i class="fa-solid fa-briefcase me-1"></i> Verified Employer
+                </span>
+                {% if level_profile %}
+                  <span class="badge bg-warning text-dark fw-bold px-3 py-1 rounded-pill">
+                    <i class="fa-solid fa-crown me-1"></i> Level {{ level_profile.level }}
+                  </span>
+                {% endif %}
+              </div>
+
+              <h1 class="display-6 fw-bold mb-2">{{ profile.company_name|default:full_name }}</h1>
+
+              {% if profile.headline %}
+                <p class="fs-6 text-light opacity-90 mb-3">{{ profile.headline }}</p>
+              {% endif %}
+
+              <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-3 small text-light opacity-80">
+                {% if profile.location %}
+                  <span><i class="fa-solid fa-location-dot me-1"></i>{{ profile.location }}</span>
+                {% endif %}
+                {% if profile.website %}
+                  <span>
+                    <i class="fa-solid fa-globe me-1"></i>
+                    <a href="{{ profile.website }}" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-underline">{{ profile.website }}</a>
+                  </span>
+                {% endif %}
+                <span><i class="fa-regular fa-envelope me-1"></i>{{ profile_user.email }}</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons for Owner -->
+            {% if is_owner %}
+              <div class="d-flex flex-column gap-2 flex-shrink-0 w-100 w-md-auto mt-3 mt-md-0">
+                <a href="{% url 'accounts.edit_profile' %}" class="btn btn-light fw-semibold text-primary shadow-sm">
+                  <i class="fa-solid fa-pen-to-square me-1"></i> Edit Company Profile
+                </a>
+                <a href="{% url 'jobs.create' %}" class="btn btn-warning fw-bold text-dark shadow-sm">
+                  <i class="fa-solid fa-plus me-1"></i> Post a Job
+                </a>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white px-4 pt-3 border-bottom">
+          <ul class="nav nav-tabs border-0" id="employerTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active fw-bold text-dark border-0 border-bottom border-3 border-primary pb-3 px-3" id="about-tab" data-bs-toggle="tab" data-bs-target="#about-tab-pane" type="button" role="tab" aria-controls="about-tab-pane" aria-selected="true">
+                <i class="fa-solid fa-circle-info me-2 text-primary"></i> About Us
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link fw-bold text-secondary border-0 pb-3 px-3" id="postings-tab" data-bs-toggle="tab" data-bs-target="#postings-tab-pane" type="button" role="tab" aria-controls="postings-tab-pane" aria-selected="false">
+                <i class="fa-solid fa-briefcase me-2 text-primary"></i> Open Job Postings
+                <span class="badge rounded-pill bg-primary ms-1">{{ active_jobs|length }}</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="tab-content" id="employerTabsContent">
+
+        <!-- Tab 1: About Us -->
+        <div class="tab-pane fade show active" id="about-tab-pane" role="tabpanel" aria-labelledby="about-tab" tabindex="0">
+          <div class="card border-0 shadow-sm p-4 p-md-5 rounded-4 mb-4">
+            <h2 class="h5 fw-bold text-primary mb-3">About {{ profile.company_name|default:full_name }}</h2>
+            
+            {% if profile.about %}
+              <div class="text-secondary lead fs-6 mb-4" style="white-space: pre-line;">
+                {{ profile.about }}
+              </div>
+            {% else %}
+              <div class="text-muted fst-italic mb-4">
+                No company description provided yet.
+                {% if is_owner %}
+                  <a href="{% url 'accounts.edit_profile' %}" class="ms-1 text-primary">Add an about us section &rarr;</a>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <hr class="my-4">
+
+            <div class="row g-4">
+              <div class="col-12 col-md-4">
+                <div class="p-3 bg-light rounded-3">
+                  <div class="text-muted small mb-1"><i class="fa-solid fa-location-dot me-1 text-primary"></i> Headquarters</div>
+                  <div class="fw-semibold text-dark">{{ profile.location|default:"Not specified" }}</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="p-3 bg-light rounded-3">
+                  <div class="text-muted small mb-1"><i class="fa-solid fa-globe me-1 text-primary"></i> Website</div>
+                  <div class="fw-semibold text-dark text-truncate">
+                    {% if profile.website %}
+                      <a href="{{ profile.website }}" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-none">{{ profile.website }}</a>
+                    {% else %}
+                      Not specified
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="p-3 bg-light rounded-3">
+                  <div class="text-muted small mb-1"><i class="fa-regular fa-envelope me-1 text-primary"></i> Recruiter Contact</div>
+                  <div class="fw-semibold text-dark text-truncate">{{ profile_user.email }}</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tab 2: Job Postings -->
+        <div class="tab-pane fade" id="postings-tab-pane" role="tabpanel" aria-labelledby="postings-tab" tabindex="0">
+          {% if active_jobs %}
+            <div class="row g-4">
+              {% for job in active_jobs %}
+                <div class="col-12">
+                  <div class="card border-0 shadow-sm p-4 rounded-4 hover-shadow transition">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-3">
+                      <div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
+                            {{ job.get_work_type_display }}
+                          </span>
+                          {% if job.visa_sponsorship %}
+                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle rounded-pill">
+                              Visa Sponsorship
+                            </span>
+                          {% endif %}
+                          <span class="text-muted small"><i class="fa-regular fa-calendar me-1"></i>Posted {{ job.date }}</span>
+                        </div>
+                        <h3 class="h4 fw-bold text-primary mb-1">
+                          <a href="{% url 'jobs.detail' id=job.id %}" class="text-decoration-none text-primary">{{ job.title }}</a>
+                        </h3>
+                        <div class="text-muted small mb-2">
+                          <span class="me-3"><i class="fa-solid fa-location-dot me-1"></i>{{ job.location }}</span>
+                          <span class="fw-semibold text-dark"><i class="fa-solid fa-dollar-sign me-1"></i>${{ job.salary_min }} - ${{ job.salary_max }}</span>
+                        </div>
+                      </div>
+
+                      <div class="d-flex flex-wrap align-items-center gap-2 flex-shrink-0">
+                        <a href="{% url 'jobs.detail' id=job.id %}" class="btn btn-outline-primary btn-sm px-3">
+                          View Role
+                        </a>
+                        {% if is_owner %}
+                          <a href="{% url 'jobs.applicants' id=job.id %}" class="btn btn-primary btn-sm px-3 fw-semibold">
+                            <i class="fa-solid fa-users me-1"></i> Applicants
+                            <span class="badge bg-white text-primary ms-1">{{ job.applications.count }}</span>
+                          </a>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <p class="text-secondary small mb-3">
+                      {{ job.description|truncatechars:220 }}
+                    </p>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <span class="small fw-semibold text-dark me-1">Required Skills:</span>
+                      {% for skill in job.required_skills.split %}
+                        <span class="badge bg-light text-secondary border small">{{ skill|cut:"," }}</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="card border-0 shadow-sm p-5 text-center bg-white rounded-4">
+              <div class="py-4">
+                <i class="fa-regular fa-folder-open fa-3x text-muted mb-3"></i>
+                <h3 class="h5 fw-bold text-dark mb-2">No active job postings yet</h3>
+                <p class="text-muted mx-auto mb-4" style="max-width: 450px;">
+                  {% if is_owner %}
+                    Get started by posting your first role to attract top applicants on LockedIn.
+                  {% else %}
+                    This company has not listed any active positions yet. Check back soon!
+                  {% endif %}
+                </p>
+                {% if is_owner %}
+                  <a href="{% url 'jobs.create' %}" class="btn btn-primary px-4 fw-bold shadow-sm">
+                    <i class="fa-solid fa-plus me-1"></i> Post a Job Now
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Employer Locked In Modal -->
+{% if show_locked_in_modal %}
+<div class="modal fade" id="lockedInModal" tabindex="-1" aria-labelledby="lockedInModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg text-center overflow-hidden" style="border-radius: 1.5rem;">
+      <div class="py-4 px-3 text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);">
+        <span class="badge bg-white text-dark text-uppercase px-3 py-2 rounded-pill fw-bold shadow-sm mb-3">
+          <i class="fa-solid fa-trophy text-warning me-1"></i> Achievement Unlocked!
+        </span>
+
+        <div class="mx-auto mb-2 rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow" style="width: 84px; height: 84px;">
+          <i class="fa-solid fa-building fa-3x" style="color: #059669;"></i>
+        </div>
+
+        <h2 class="h4 fw-bold mb-1" id="lockedInModalLabel">Locked In.</h2>
+      </div>
+
+      <div class="card-body p-4 text-center">
+        <h3 class="h5 fw-bold text-dark mb-2">Your Company Profile is Ready!</h3>
+        <p class="text-secondary small mb-4">
+          Congratulations on setting up your organization's presence on LockedIn. Next, let's explore your <strong>Quests & Leveling</strong> hub to see how hiring challenges and XP will guide your recruitment journey!
+        </p>
+
+        <a href="{% url 'leveling:dashboard' %}?tutorial=1" class="btn btn-success btn-lg w-100 py-3 fw-bold rounded-pill shadow">
+          Continue to Quests &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function triggerLockedInModal() {
+    var modalEl = document.getElementById('lockedInModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+      var modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+  if (document.readyState === 'complete') {
+    triggerLockedInModal();
+  } else {
+    window.addEventListener('load', triggerLockedInModal);
+  }
+</script>
+{% endif %}
+
+<script>
+  // Tab border styling switcher
+  document.addEventListener('DOMContentLoaded', function() {
+    var tabs = document.querySelectorAll('#employerTabs button[data-bs-toggle="tab"]');
+    tabs.forEach(function(tab) {
+      tab.addEventListener('shown.bs.tab', function(event) {
+        tabs.forEach(function(t) {
+          t.classList.remove('text-dark', 'border-bottom', 'border-3', 'border-primary');
+          t.classList.add('text-secondary');
+        });
+        event.target.classList.remove('text-secondary');
+        event.target.classList.add('text-dark', 'border-bottom', 'border-3', 'border-primary');
+      });
+    });
+  });
+</script>
+{% endblock content %}
+

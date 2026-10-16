@@ -319,4 +319,56 @@
   </script>
 {% endif %}
 {% endif %}
+
+{% if show_locked_in_modal %}
+<div class="modal fade" id="lockedInModal" tabindex="-1" aria-labelledby="lockedInModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg text-center overflow-hidden" style="border-radius: 1.5rem;">
+      <div class="py-4 px-3 text-white" style="background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);">
+        <span class="badge bg-white text-dark text-uppercase px-3 py-2 rounded-pill fw-bold shadow-sm mb-3">
+          <i class="fa-solid fa-trophy text-warning me-1"></i> Achievement Unlocked!
+        </span>
+
+        <div class="mx-auto mb-2 rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow" style="width: 84px; height: 84px;">
+          <i class="fa-solid fa-lock fa-3x" style="color: #059669;"></i>
+        </div>
+
+        <h2 class="h4 fw-bold mb-1" id="lockedInModalLabel">Locked In.</h2>
+      </div>
+
+      <div class="card-body p-4 text-center">
+        <div class="p-3 mb-3 rounded-3 bg-light border text-center">
+          <div class="fw-bold text-primary fs-5">
+            <i class="fa-solid fa-crown text-warning me-1"></i> Level {{ level_profile.level }}: {{ level_profile.rank_title }}
+          </div>
+          <div class="small text-muted mt-1">{{ level_profile.xp }} Total XP accumulated</div>
+        </div>
+
+        <h3 class="h5 fw-bold text-dark mb-2">You're Officially Locked In!</h3>
+        <p class="text-secondary small mb-4">
+          Complete your profile setup for the first time. Your profile is now armed and ready. Next, let's explore your <strong>Quests & Leveling</strong> hub to see how weekly challenges and XP will guide your job hunt!
+        </p>
+
+        <a href="{% url 'leveling:dashboard' %}?tutorial=1" class="btn btn-success btn-lg w-100 py-3 fw-bold rounded-pill shadow">
+          Continue to Quests &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  function triggerLockedInModal() {
+    var modalEl = document.getElementById('lockedInModal');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+      var modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+  if (document.readyState === 'complete') {
+    triggerLockedInModal();
+  } else {
+    window.addEventListener('load', triggerLockedInModal);
+  }
+</script>
+{% endif %}
 {% endblock content %}
