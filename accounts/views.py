@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -39,7 +40,18 @@ def signup(request):
         Profile.objects.create(user=user, role=role)
         login(request, user)
         request.session['is_new_account'] = True
-        return redirect('accounts.edit_profile')
+
+        from leveling.services import award_account_created_achievement
+        ach, level_profile, leveled_up = award_account_created_achievement(user)
+
+        template_data = {'title': 'Locking In... | LockedIn'}
+        return render(request, 'accounts/signup_welcome.html', {
+            'template_data': template_data,
+            'achievement': ach,
+            'level_profile': level_profile,
+            'leveled_up': leveled_up,
+            'continue_url': reverse('accounts.edit_profile'),
+        })
 
     template_data = {'title': 'Sign Up | LockedIn'}
     return render(request, 'accounts/signup.html', {'template_data': template_data})
@@ -203,6 +215,12 @@ def edit_profile(request):
         profile.show_projects = 'show_projects' in request.POST
         profile.save()
 
+        from leveling.services import award_profile_completed_achievement
+        first_time_result = award_profile_completed_achievement(request.user)
+
+        if first_time_result:
+            request.session['show_locked_in_modal'] = True
+
         messages.success(request, 'Your profile has been saved!')
         return redirect('accounts.profile', username=request.user.username)
 
@@ -235,6 +253,14 @@ def user_profile(request, username):
     is_admin = request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
     can_view_profile = not profile.is_private or is_owner or is_admin
 
+    show_locked_in_modal = False
+    level_profile = None
+    if is_owner:
+        show_locked_in_modal = request.session.pop('show_locked_in_modal', False)
+        if show_locked_in_modal:
+            from leveling.services import get_or_create_user_level_profile
+            level_profile = get_or_create_user_level_profile(request.user)
+
     return render(request, 'accounts/profile.html', {
         'template_data': template_data,
         'profile_user': user,
@@ -243,6 +269,8 @@ def user_profile(request, username):
         'is_owner': is_owner,
         'is_admin': is_admin,
         'can_view_profile': can_view_profile,
+        'show_locked_in_modal': show_locked_in_modal,
+        'level_profile': level_profile,
     })
 
 def parse_date_input(val):

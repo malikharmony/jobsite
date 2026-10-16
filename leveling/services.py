@@ -52,6 +52,30 @@ def seed_default_gamification_content():
 
     default_achievements = [
         {
+            'slug': 'locking_in',
+            'title': 'Locking In...',
+            'description': 'Create your account and jumpstart your LockedIn journey.',
+            'category': 'milestone',
+            'icon': 'fa-solid fa-lock-open',
+            'xp_reward': 0,
+            'target_value': 1,
+            'metric_key': 'account_created',
+            'is_secret': False,
+            'order': 0,
+        },
+        {
+            'slug': 'locked_in',
+            'title': 'Locked In.',
+            'description': 'Complete your profile setup for the first time.',
+            'category': 'milestone',
+            'icon': 'fa-solid fa-lock',
+            'xp_reward': 0,
+            'target_value': 1,
+            'metric_key': 'profile_completed',
+            'is_secret': False,
+            'order': 1,
+        },
+        {
             'slug': 'first_step',
             'title': 'First Step',
             'description': 'Submit your very first job application.',
@@ -61,7 +85,7 @@ def seed_default_gamification_content():
             'target_value': 1,
             'metric_key': 'total_applications',
             'is_secret': False,
-            'order': 1,
+            'order': 2,
         },
         {
             'slug': 'apply_20_jobs',
@@ -73,7 +97,7 @@ def seed_default_gamification_content():
             'target_value': 20,
             'metric_key': 'total_applications',
             'is_secret': False,
-            'order': 2,
+            'order': 3,
         },
         {
             'slug': 'rejected_after_internship',
@@ -85,12 +109,81 @@ def seed_default_gamification_content():
             'target_value': 1,
             'metric_key': 'rejected_after_internship',
             'is_secret': True,
-            'order': 3,
+            'order': 4,
         },
     ]
 
     for a_data in default_achievements:
         Achievement.objects.update_or_create(slug=a_data['slug'], defaults=a_data)
+
+
+def award_account_created_achievement(user):
+    """Awards the 'Locking In...' achievement on sign up."""
+    seed_default_gamification_content()
+    profile = get_or_create_user_level_profile(user)
+    ach = Achievement.objects.get(slug='locking_in')
+    ua, _ = UserAchievement.objects.get_or_create(user=user, achievement=ach)
+
+    leveled_up = False
+    if not ua.unlocked:
+        ua.unlocked = True
+        ua.unlocked_at = timezone.now()
+        ua.current_progress = 1
+        ua.viewed = True
+        ua.save()
+        if ach.xp_reward > 0:
+            leveled_up = profile.add_xp(ach.xp_reward)
+
+    return ach, profile, leveled_up
+
+
+def award_profile_completed_achievement(user):
+    """Awards the 'Locked In.' achievement when the user fills out and saves their profile for the first time."""
+    seed_default_gamification_content()
+    profile = get_or_create_user_level_profile(user)
+    try:
+        ach = Achievement.objects.get(slug='locked_in')
+    except Achievement.DoesNotExist:
+        return None
+
+    ua, _ = UserAchievement.objects.get_or_create(user=user, achievement=ach)
+    if ua.unlocked:
+        return None
+
+    ua.unlocked = True
+    ua.unlocked_at = timezone.now()
+    ua.current_progress = 1
+    ua.viewed = True
+    ua.save()
+    leveled_up = False
+    if ach.xp_reward > 0:
+        leveled_up = profile.add_xp(ach.xp_reward)
+
+    return ach, profile, leveled_up
+
+
+def award_first_step_achievement(user):
+    """Awards the 'First Step' achievement (+50 XP) as part of the onboarding tutorial sequence."""
+    seed_default_gamification_content()
+    profile = get_or_create_user_level_profile(user)
+    try:
+        ach = Achievement.objects.get(slug='first_step')
+    except Achievement.DoesNotExist:
+        return None, profile, False
+
+    ua, _ = UserAchievement.objects.get_or_create(user=user, achievement=ach)
+    if ua.unlocked:
+        return ach, profile, False
+
+    ua.unlocked = True
+    ua.unlocked_at = timezone.now()
+    ua.current_progress = 1
+    ua.viewed = False
+    ua.save()
+    leveled_up = profile.add_xp(ach.xp_reward)
+
+    return ach, profile, leveled_up
+
 
 
 def get_or_create_user_level_profile(user):
@@ -108,7 +201,7 @@ def sync_user_stats(user, level_profile=None):
 
     from jobs.models import JobApplication
 
-    apps = JobApplication.objects.filter(applicant=user)
+    apps = JobApplication.objects.filter(applicant=user).exclude(job__title__icontains='(Demo)')
     total_apps = apps.count()
     distinct_companies = apps.values('job__recruiter').distinct().count()
     interviews = apps.filter(status='interview').count()
@@ -127,6 +220,10 @@ def sync_user_stats(user, level_profile=None):
 
 def ensure_user_quests(user):
     """Ensures that the user has instances for all active weekly quests for the current week."""
+    profile = get_or_create_user_level_profile(user)
+    if not profile.tutorial_completed:
+        return UserQuest.objects.none()
+
     seed_default_gamification_content()
     start_date, end_date = get_current_week_boundaries()
 
@@ -223,6 +320,16 @@ def record_job_applied(user, job_application):
     """Event handler when a user applies to a job."""
     with transaction.atomic():
         profile = get_or_create_user_level_profile(user)
+
+        # For demo jobs: complete the "First Step" achievement as part of the tutorial sequence
+        is_demo = job_application and job_application.job and '(Demo)' in job_application.job.title
+        if is_demo:
+            award_first_step_achievement(user)
+            return
+
+        if not profile.tutorial_completed:
+            return
+
         sync_user_stats(user, profile)
 
         # Update weekly application quest
@@ -281,6 +388,10 @@ def record_profile_update(user):
         profile = get_or_create_user_level_profile(user)
         profile.profile_updates_count += 1
         profile.save(update_fields=['profile_updates_count'])
+
+        # Quests do not progress during the onboarding tutorial
+        if not profile.tutorial_completed:
+            return
 
         # Update weekly quest
         start_date, end_date = get_current_week_boundaries()

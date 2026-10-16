@@ -43,6 +43,7 @@ class UserLevelProfile(models.Model):
     rejections_count = models.PositiveIntegerField(default=0)
     profile_updates_count = models.PositiveIntegerField(default=0)
 
+    tutorial_completed = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -218,6 +219,7 @@ class UserQuest(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     is_reward_claimed = models.BooleanField(default=False)
     claimed_at = models.DateTimeField(null=True, blank=True)
+    notified = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'quest', 'period_start')

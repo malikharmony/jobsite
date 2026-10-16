@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="container py-5 d-flex align-items-center justify-content-center" style="min-height: 75vh;">
+  <div class="row justify-content-center w-100">
+    <div class="col-12 col-md-8 col-lg-6">
+      
+      <!-- Big Central Celebration Card -->
+      <div class="card border-0 shadow-lg text-center overflow-hidden position-relative" style="border-radius: 1.5rem;">
+        
+        <!-- Animated / Glowing Header Gradient -->
+        <div class="py-4 px-3 text-white" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);">
+          <span class="badge bg-white text-dark text-uppercase px-3 py-2 rounded-pill fw-bold shadow-sm mb-3">
+            <i class="fa-solid fa-star text-warning me-1"></i> Achievement Unlocked!
+          </span>
+
+          <div class="mx-auto mb-2 rounded-circle bg-white text-warning d-flex align-items-center justify-content-center shadow" style="width: 90px; height: 90px;">
+            <i class="fa-solid fa-lock-open fa-3x" style="color: #d97706;"></i>
+          </div>
+
+          <h1 class="h3 fw-bold mb-1">{{ achievement.title }}</h1>
+          {% if achievement.xp_reward > 0 %}
+          <div class="badge bg-dark bg-opacity-25 fs-6 px-3 py-1 rounded-pill">
+            +{{ achievement.xp_reward }} XP Earned
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+          
+          {% if leveled_up %}
+            <!-- Level Up Announcement Banner -->
+            <div class="p-3 mb-4 rounded-3 text-white shadow-sm" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);">
+              <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                <i class="fa-solid fa-crown text-warning fs-5"></i>
+                <span class="fw-bold fs-5">LEVEL UP!</span>
+              </div>
+              <div class="fs-6 fw-semibold">
+                You reached Level {{ level_profile.level }}: <span class="text-warning">{{ level_profile.rank_title }}</span>
+              </div>
+            </div>
+          {% endif %}
+
+          <h2 class="h5 fw-bold text-primary mb-2">Welcome to LockedIn, {{ user.username }}!</h2>
+          <p class="text-secondary mb-4">
+            {{ achievement.description }} You've officially begun your quest to conquer the job market. Your first step is to customize and design your profile so employers can discover you.
+          </p>
+
+          <a href="{{ continue_url }}" class="btn btn-primary btn-lg w-100 py-3 fw-bold rounded-pill shadow">
+            Continue to Design Profile <i class="fa-solid fa-arrow-right ms-2"></i>
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock content %}
+

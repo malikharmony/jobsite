@@ -40,6 +40,9 @@ class LevelingFrameworkTests(TestCase):
             password='password123'
         )
         self.profile = Profile.objects.create(user=self.applicant, role='job_seeker')
+        level_profile = get_or_create_user_level_profile(self.applicant)
+        level_profile.tutorial_completed = True
+        level_profile.save()
 
         # Seed content
         seed_default_gamification_content()
@@ -254,4 +257,243 @@ class LevelingFrameworkTests(TestCase):
         self.assertContains(res, 'achievement-toast')
         self.assertContains(res, 'Achievement Unlocked!')
         self.assertContains(res, 'First Step')
+
+    def test_quest_completion_toast_and_api(self):
+        self.client.login(username='applicant_bob', password='password123')
+        ensure_user_quests(self.applicant)
+
+        # Complete weekly application quest
+        JobApplication.objects.create(job=self.job1, applicant=self.applicant)
+
+        # Check API returns the completed quest
+        res = self.client.get(reverse('leveling:api_unviewed'))
+        self.assertEqual(res.status_code, 200)
+        quests = res.json().get('quests', [])
+        self.assertEqual(len(quests), 1)
+        quest_data = quests[0]
+        self.assertEqual(quest_data['title'], 'Weekly Hustle: Apply to a Job')
+
+        # Check HTML renders quest-toast
+        page_res = self.client.get(reverse('jobs.index'))
+        self.assertEqual(page_res.status_code, 200)
+        self.assertContains(page_res, 'quest-toast')
+        self.assertContains(page_res, 'Quest Completed!')
+
+        # Mark quest viewed
+        mark_res = self.client.get(reverse('leveling:api_mark_quest_viewed', kwargs={'user_quest_id': quest_data['id']}))
+        self.assertEqual(mark_res.status_code, 200)
+        self.assertTrue(mark_res.json()['success'])
+
+        # API should now return 0 unviewed quests
+        res_after = self.client.get(reverse('leveling:api_unviewed'))
+        self.assertEqual(res_after.json().get('quests', []), [])
+
+    def test_onboarding_signup_awards_locking_in_achievement(self):
+        signup_res = self.client.post(reverse('accounts.signup'), {
+            'username': 'newbie_sam',
+            'email': 'sam@example.com',
+            'password': 'password123',
+            'role': 'job_seeker'
+        })
+        self.assertEqual(signup_res.status_code, 200)
+        self.assertContains(signup_res, 'Locking In...')
+        self.assertNotContains(signup_res, 'LEVEL UP!')
+        self.assertContains(signup_res, reverse('accounts.edit_profile'))
+
+        newbie = User.objects.get(username='newbie_sam')
+        level_profile = UserLevelProfile.objects.get(user=newbie)
+        self.assertEqual(level_profile.xp, 0)
+        self.assertEqual(level_profile.level, 1)
+        self.assertEqual(level_profile.rank_title, 'Job Seeker Novice')
+
+    def test_first_profile_save_awards_locked_in_and_shows_quests_link(self):
+        # Create user via signup
+        self.client.post(reverse('accounts.signup'), {
+            'username': 'designer_dave',
+            'email': 'dave@example.com',
+            'password': 'password123',
+            'role': 'job_seeker'
+        })
+        dave = User.objects.get(username='designer_dave')
+
+        # First save profile
+        res = self.client.post(reverse('accounts.edit_profile'), {
+            'first_name': 'Dave',
+            'last_name': 'Miller',
+            'headline': 'UI/UX Developer',
+            'skills': 'Figma, CSS, Django'
+        }, follow=True)
+        self.assertRedirects(res, reverse('accounts.profile', kwargs={'username': 'designer_dave'}))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Locked In.')
+        self.assertNotContains(res, '+150 XP Earned')
+        self.assertContains(res, "You're Officially Locked In!")
+        self.assertContains(res, reverse('leveling:dashboard') + '?tutorial=1')
+
+        # Dave should have 0 XP and stay at Level 1 (Job Seeker Novice)
+        level_profile = UserLevelProfile.objects.get(user=dave)
+        self.assertEqual(level_profile.xp, 0)
+        self.assertEqual(level_profile.level, 1)
+
+        # Subsequent save does not trigger welcome again, redirects to profile
+        res2 = self.client.post(reverse('accounts.edit_profile'), {
+            'first_name': 'Dave',
+            'last_name': 'Miller',
+            'headline': 'Senior UI/UX Developer',
+            'skills': 'Figma, CSS, Django, Python'
+        })
+        self.assertRedirects(res2, reverse('accounts.profile', kwargs={'username': 'designer_dave'}))
+
+    def test_quests_dashboard_tutorial_rendered(self):
+        self.client.login(username='applicant_bob', password='password123')
+
+        # Without tutorial parameter: no tutorial card
+        res_normal = self.client.get(reverse('leveling:dashboard'))
+        self.assertEqual(res_normal.status_code, 200)
+        self.assertNotContains(res_normal, 'Welcome to Your Gamified Job Hunt!')
+
+        # With tutorial parameter: shows tutorial card
+        res_tut = self.client.get(reverse('leveling:dashboard') + '?tutorial=1')
+        self.assertEqual(res_tut.status_code, 200)
+        self.assertContains(res_tut, 'Welcome to Your Gamified Job Hunt!')
+        self.assertContains(res_tut, '1. XP & Levels')
+        self.assertContains(res_tut, '2. Weekly Quests')
+        self.assertContains(res_tut, '3. Achievements')
+        self.assertContains(res_tut, reverse('jobs.index') + '?demo=1')
+
+    def test_quests_locked_and_do_not_progress_during_onboarding(self):
+        # Create fresh user
+        user = User.objects.create_user(
+            username='fresh_user',
+            email='fresh@example.com',
+            password='password123'
+        )
+        Profile.objects.create(user=user, role='job_seeker')
+        level_profile = get_or_create_user_level_profile(user)
+        self.assertFalse(level_profile.tutorial_completed)
+
+        # Quests should be empty / locked
+        quests = ensure_user_quests(user)
+        self.assertEqual(quests.count(), 0)
+
+        # Updating profile should NOT complete or progress "Polish the Resume" quest
+        self.client.login(username='fresh_user', password='password123')
+        self.client.post(reverse('accounts.edit_profile'), {
+            'first_name': 'Fresh',
+            'last_name': 'Candidate',
+            'headline': 'Full Stack Developer',
+            'skills': 'Python, React'
+        })
+
+        # Quests still 0
+        self.assertEqual(UserQuest.objects.filter(user=user).count(), 0)
+
+        # Dashboard shows locked state
+        res = self.client.get(reverse('leveling:dashboard'))
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.context['quests_unlocked'])
+        self.assertContains(res, 'Weekly Quests are Locked')
+        self.assertContains(res, reverse('jobs.index') + '?demo=1')
+
+    def test_complete_onboarding_tutorial_flow_with_google_demo(self):
+        # 1. Sign up
+        signup_res = self.client.post(reverse('accounts.signup'), {
+            'username': 'alice_tutorial',
+            'email': 'alice@example.com',
+            'password': 'password123',
+            'role': 'job_seeker'
+        })
+        alice = User.objects.get(username='alice_tutorial')
+        profile = UserLevelProfile.objects.get(user=alice)
+        self.assertFalse(profile.tutorial_completed)
+        self.assertEqual(profile.level, 1) # Intro achievement has 0 XP
+        self.assertEqual(profile.xp, 0)
+
+        # 2. Complete Profile
+        profile_res = self.client.post(reverse('accounts.edit_profile'), {
+            'first_name': 'Alice',
+            'last_name': 'Wonderland',
+            'headline': 'Software Engineer in Training',
+            'skills': 'Python, Django, Algorithms'
+        }, follow=True)
+        self.assertRedirects(profile_res, reverse('accounts.profile', kwargs={'username': 'alice_tutorial'}))
+        self.assertContains(profile_res, reverse('leveling:dashboard') + '?tutorial=1')
+
+        # Quests are not generated yet
+        self.assertEqual(UserQuest.objects.filter(user=alice).count(), 0)
+        profile.refresh_from_db()
+        self.assertEqual(profile.xp, 0)
+        self.assertEqual(profile.level, 1)
+
+        # 3. Visit Quests Page (?tutorial=1)
+        quest_page_res = self.client.get(reverse('leveling:dashboard') + '?tutorial=1')
+        self.assertEqual(quest_page_res.status_code, 200)
+        self.assertFalse(quest_page_res.context['quests_unlocked'])
+        self.assertContains(quest_page_res, 'Welcome to Your Gamified Job Hunt!')
+        self.assertContains(quest_page_res, reverse('jobs.index') + '?demo=1')
+
+        # 4. Visit Job Discovery with ?demo=1
+        discovery_res = self.client.get(reverse('jobs.index') + '?demo=1')
+        self.assertEqual(discovery_res.status_code, 200)
+        self.assertTrue(discovery_res.context['template_data']['demo_mode'])
+        demo_job = discovery_res.context['template_data']['demo_job']
+        self.assertIsNotNone(demo_job)
+        self.assertEqual(demo_job.title, 'Software Engineer - Google (Demo)')
+        self.assertContains(discovery_res, 'Software Engineer - Google (Demo)')
+        self.assertContains(discovery_res, 'Tutorial Mission: First Application')
+
+        # 5. Visit Demo Job Details
+        demo_detail_res = self.client.get(reverse('jobs.detail', kwargs={'id': demo_job.id}) + '?demo=1')
+        self.assertEqual(demo_detail_res.status_code, 200)
+        self.assertTrue(demo_detail_res.context['is_demo_job'])
+        self.assertContains(demo_detail_res, 'Interactive Tutorial: Inspecting & Applying to a Job')
+        self.assertContains(demo_detail_res, 'Apply Now (Practice Demo)')
+
+        # 6. Apply to Demo Job -> Awards "First Step" achievement (+50 XP)!
+        apply_res = self.client.post(reverse('jobs.apply', kwargs={'id': demo_job.id}), {
+            'cover_letter': 'Hello Google! I am applying as part of my tutorial.'
+        })
+        self.assertRedirects(apply_res, reverse('leveling:dashboard') + '?tutorial=conclude')
+
+        # Verify "First Step" achievement was unlocked
+        first_step = Achievement.objects.get(slug='first_step')
+        ua = UserAchievement.objects.get(user=alice, achievement=first_step)
+        self.assertTrue(ua.unlocked)
+
+        # Alice now has 50 XP
+        profile.refresh_from_db()
+        self.assertEqual(profile.xp, 50)
+        self.assertEqual(profile.level, 1)
+
+        # Verify demo application didn't count towards real profile applications counter
+        self.assertEqual(profile.total_applications, 0)
+
+        # 7. Visit Quests Page with ?tutorial=conclude
+        conclude_res = self.client.get(reverse('leveling:dashboard') + '?tutorial=conclude')
+        self.assertEqual(conclude_res.status_code, 200)
+        profile.refresh_from_db()
+        self.assertTrue(profile.tutorial_completed)
+        self.assertTrue(conclude_res.context['quests_unlocked'])
+        self.assertContains(conclude_res, 'Tutorial Complete!')
+        self.assertContains(conclude_res, 'First Step')
+        self.assertContains(conclude_res, 'Weekly Quests are now Live!')
+
+        # Weekly quests are now generated
+        self.assertGreater(UserQuest.objects.filter(user=alice).count(), 0)
+
+        # 8. Subsequent profile edit now progresses the "Polish the Resume" quest
+        self.client.post(reverse('accounts.edit_profile'), {
+            'first_name': 'Alice',
+            'last_name': 'Wonderland',
+            'headline': 'Senior Software Engineer',
+            'skills': 'Python, Django, Algorithms, System Design'
+        })
+
+        resume_quest = Quest.objects.get(slug='weekly_update_profile')
+        start_date, _ = get_current_week_boundaries()
+        uq = UserQuest.objects.get(user=alice, quest=resume_quest, period_start=start_date)
+        self.assertTrue(uq.is_completed)
+
+
+
 
