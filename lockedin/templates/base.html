@@ -40,6 +40,11 @@
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'jobs.applications' %}">Applications</a>
                 </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'leveling:dashboard' %}">
+                    <i class="fa-solid fa-trophy me-1"></i> Quests & Leveling
+                  </a>
+                </li>
                 {% endif %}
                 {% if user.profile.role == 'employer' %}
                 <li class="nav-item">

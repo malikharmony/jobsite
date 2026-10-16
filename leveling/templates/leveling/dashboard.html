@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="leveling-dashboard py-5">
+  <div class="container">
+
+    <!-- Header / Level Progress Hero Card -->
+    <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+      <div class="card-body p-4 p-md-5 text-white" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);">
+        <div class="row align-items-center g-4">
+          
+          <div class="col-12 col-md-8">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill shadow-sm">
+                <i class="fa-solid fa-crown me-1"></i> Level {{ level_profile.level }}
+              </span>
+              <span class="text-white-50 fw-semibold text-uppercase tracking-wider" style="letter-spacing: 1px;">
+                {{ level_profile.rank_title }}
+              </span>
+            </div>
+
+            <h1 class="display-6 fw-bold mb-2">Welcome back, {{ request.user.username }}!</h1>
+            <p class="text-light opacity-75 mb-4">
+              Level up your job search. Complete weekly quests and unlock achievements to earn XP and level up your LockedIn profile.
+            </p>
+
+            <!-- XP Progress Bar -->
+            <div class="bg-white bg-opacity-25 p-3 rounded-3 shadow-inner">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold small">
+                  <i class="fa-solid fa-bolt text-warning me-1"></i> Level {{ level_profile.level }} Progress
+                </span>
+                <span class="small fw-bold">
+                  {{ level_profile.xp_progress_in_current_level }} / {{ level_profile.xp_needed_for_next_level }} XP to Level {{ level_profile.level|add:"1" }}
+                </span>
+              </div>
+              <div class="progress" style="height: 14px; background-color: rgba(255,255,255,0.3);" role="progressbar" aria-valuenow="{{ level_profile.level_progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold small" style="width: {{ level_profile.level_progress_percentage }}%;">
+                  {% if level_profile.level_progress_percentage > 15 %}{{ level_profile.level_progress_percentage }}%{% endif %}
+                </div>
+              </div>
+              <div class="d-flex justify-content-between mt-2 small text-light opacity-75">
+                <span>Total XP Earned: <strong>{{ level_profile.xp }} XP</strong></span>
+                <span>Next Rank: <strong>{{ level_profile.level|add:"1" }}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats Counter Column -->
+          <div class="col-12 col-md-4">
+            <div class="row g-2">
+              <div class="col-6">
+                <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                  <div class="fs-3 fw-bold">{{ level_profile.total_applications }}</div>
+                  <div class="small opacity-75">Jobs Applied</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                  <div class="fs-3 fw-bold">{{ level_profile.distinct_companies_applied }}</div>
+                  <div class="small opacity-75">Companies</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                  <div class="fs-3 fw-bold">{{ completed_quests }} / {{ quests|length }}</div>
+                  <div class="small opacity-75">Quests Done</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                  <div class="fs-3 fw-bold">{{ unlocked_achievements }} / {{ total_achievements }}</div>
+                  <div class="small opacity-75">Badges Won</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Weekly Quests -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h4 fw-bold text-primary mb-1">
+              <i class="fa-solid fa-calendar-check me-2 text-primary"></i> Weekly Quests
+            </h2>
+            <p class="text-muted small mb-0">Reset every Monday at 00:00 UTC. Complete tasks to earn instant bonus XP!</p>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          {% for uq in quests %}
+            <div class="col-12 col-md-6">
+              <div class="card h-100 border-0 shadow-sm {% if uq.is_completed and not uq.is_reward_claimed %}border-start border-4 border-success{% elif uq.is_reward_claimed %}opacity-75{% endif %}">
+                <div class="card-body p-4 d-flex flex-column">
+                  
+                  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="rounded-circle d-flex align-items-center justify-content-center text-primary" style="width: 48px; height: 48px; background-color: #eff6ff;">
+                        <i class="{{ uq.quest.icon }} fa-lg"></i>
+                      </div>
+                      <div>
+                        <h3 class="h6 fw-bold mb-1">{{ uq.quest.title }}</h3>
+                        <span class="badge text-bg-light border text-primary">
+                          +{{ uq.quest.xp_reward }} XP
+                        </span>
+                      </div>
+                    </div>
+
+                    {% if uq.is_reward_claimed %}
+                      <span class="badge text-bg-secondary px-3 py-2">
+                        <i class="fa-solid fa-check-double me-1"></i> Claimed
+                      </span>
+                    {% elif uq.is_completed %}
+                      <span class="badge text-bg-success px-3 py-2">
+                        <i class="fa-solid fa-check me-1"></i> Completed
+                      </span>
+                    {% else %}
+                      <span class="badge text-bg-light border text-muted px-2 py-1 small">
+                        In Progress
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <p class="text-muted small mb-3 flex-grow-1">
+                    {{ uq.quest.description }}
+                  </p>
+
+                  <!-- Quest Progress Bar -->
+                  <div class="mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-1 small">
+                      <span class="text-muted">Progress</span>
+                      <span class="fw-semibold">{{ uq.progress }} / {{ uq.quest.target_count }}</span>
+                    </div>
+                    <div class="progress mb-3" style="height: 8px;">
+                      <div class="progress-bar {% if uq.is_completed %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ uq.progress_percentage }}%;" aria-valuenow="{{ uq.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="fa-regular fa-clock me-1"></i> Ends {{ uq.period_end|date:"M d" }}
+                      </small>
+
+                      {% if uq.is_completed and not uq.is_reward_claimed %}
+                        <form method="post" action="{% url 'leveling:claim_reward' user_quest_id=uq.id %}">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-success btn-sm px-3 fw-bold shadow-sm">
+                            <i class="fa-solid fa-gift me-1"></i> Claim +{{ uq.quest.xp_reward }} XP
+                          </button>
+                        </form>
+                      {% elif not uq.is_completed %}
+                        {% if uq.quest.metric_key == 'weekly_applications' %}
+                          <a href="{% url 'jobs.index' %}" class="btn btn-outline-primary btn-sm px-3">
+                            Find Jobs <i class="fa-solid fa-arrow-right ms-1"></i>
+                          </a>
+                        {% elif uq.quest.metric_key == 'profile_updated' %}
+                          <a href="{% url 'accounts.edit_profile' %}" class="btn btn-outline-primary btn-sm px-3">
+                            Edit Profile <i class="fa-solid fa-arrow-right ms-1"></i>
+                          </a>
+                        {% endif %}
+                      {% else %}
+                        <span class="text-muted small"><i class="fa-solid fa-check text-success me-1"></i> Reward Added</span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Achievements Section -->
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h4 fw-bold text-primary mb-1">
+              <i class="fa-solid fa-award me-2 text-warning"></i> Badges & Achievements
+            </h2>
+            <p class="text-muted small mb-0">Long-term milestones, career achievements, and novelty badges.</p>
+          </div>
+          <span class="badge text-bg-light border px-3 py-2">
+            {{ unlocked_achievements }} of {{ total_achievements }} Unlocked
+          </span>
+        </div>
+
+        <div class="row g-4">
+          {% for ua in achievements %}
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card h-100 border-0 shadow-sm {% if ua.unlocked %}border-top border-4 border-warning{% endif %}">
+                <div class="card-body p-4 d-flex flex-column text-center">
+                  
+                  <!-- Badge Icon Circle -->
+                  <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                       style="width: 72px; height: 72px; {% if ua.unlocked %}background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #b45309;{% else %}background-color: #f1f5f9; color: #94a3b8;{% endif %}">
+                    {% if ua.unlocked %}
+                      <i class="{{ ua.achievement.icon }} fa-2x"></i>
+                    {% elif ua.achievement.is_secret %}
+                      <i class="fa-solid fa-question fa-2x"></i>
+                    {% else %}
+                      <i class="{{ ua.achievement.icon }} fa-2x"></i>
+                    {% endif %}
+                  </div>
+
+                  <!-- Title & Category -->
+                  <div class="mb-2">
+                    <span class="badge text-uppercase {% if ua.achievement.category == 'novelty' %}bg-info-subtle text-info-emphasis{% else %}bg-primary-subtle text-primary-emphasis{% endif %} mb-1" style="font-size: 0.7rem;">
+                      {{ ua.achievement.get_category_display }}
+                    </span>
+                    <h3 class="h6 fw-bold mb-1">
+                      {% if ua.achievement.is_secret and not ua.unlocked %}
+                        Secret Achievement
+                      {% else %}
+                        {{ ua.achievement.title }}
+                      {% endif %}
+                    </h3>
+                  </div>
+
+                  <!-- Description -->
+                  <p class="text-muted small mb-3 flex-grow-1">
+                    {% if ua.achievement.is_secret and not ua.unlocked %}
+                      <em>This secret novelty badge remains hidden until you fulfill its mysterious conditions! Keep applying!</em>
+                    {% else %}
+                      {{ ua.achievement.description }}
+                    {% endif %}
+                  </p>
+
+                  <!-- Status / Progress -->
+                  <div class="mt-auto">
+                    {% if ua.unlocked %}
+                      <div class="alert alert-warning py-1 px-2 mb-0 small text-warning-emphasis border-0 d-flex align-items-center justify-content-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Unlocked {{ ua.unlocked_at|date:"M d, Y" }} (+{{ ua.achievement.xp_reward }} XP)</span>
+                      </div>
+                    {% else %}
+                      <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
+                        <span>Progress</span>
+                        <span>{{ ua.current_progress }} / {{ ua.achievement.target_value }}</span>
+                      </div>
+                      <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ ua.progress_percentage }}%;" aria-valuenow="{{ ua.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                      <span class="badge text-bg-light border text-muted small">
+                        Worth +{{ ua.achievement.xp_reward }} XP
+                      </span>
+                    {% endif %}
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock content %}
+
