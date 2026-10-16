@@ -1,11 +1,13 @@
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from jobs.models import JobApplication
+from jobs.models import JobApplication, JobPosting
 from accounts.models import Profile, Experience, Education, Skill
 from .services import (
     record_job_applied,
     record_application_status_change,
     record_profile_update,
+    record_job_posted,
+    record_applicant_status_updated,
 )
 
 
@@ -29,6 +31,14 @@ def handle_application_post_save(sender, instance, created, **kwargs):
         old_status = getattr(instance, '_old_status', None)
         if old_status and old_status != instance.status:
             record_application_status_change(instance, old_status, instance.status)
+            if instance.job and instance.job.recruiter:
+                record_applicant_status_updated(instance.job.recruiter, instance)
+
+
+@receiver(post_save, sender=JobPosting)
+def handle_job_posting_post_save(sender, instance, created, **kwargs):
+    if created and instance.recruiter:
+        record_job_posted(instance.recruiter, instance)
 
 
 @receiver(post_save, sender=Profile)

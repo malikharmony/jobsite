@@ -495,5 +495,230 @@ class LevelingFrameworkTests(TestCase):
         self.assertTrue(uq.is_completed)
 
 
+class EmployerGamificationAndTutorialTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        seed_default_gamification_content()
+
+    def test_employer_profile_build_and_public_view(self):
+        employer_user = User.objects.create_user(
+            username='techcorp_hr',
+            email='hr@techcorp.io',
+            password='password123'
+        )
+        Profile.objects.create(user=employer_user, role='employer')
+
+        self.client.login(username='techcorp_hr', password='password123')
+
+        # Edit employer profile
+        res = self.client.post(reverse('accounts.edit_profile'), {
+            'company_name': 'TechCorp Systems',
+            'username': 'techcorp_hr',
+            'headline': 'Building Next-Gen Cloud Infrastructure',
+            'about': 'We are an innovative engineering firm passionate about open source and developer tooling.',
+            'website': 'https://techcorp.io',
+            'city': 'San Francisco',
+            'country': 'United States',
+            'state': 'California',
+        })
+        self.assertRedirects(res, reverse('accounts.profile', kwargs={'username': 'techcorp_hr'}))
+
+        profile = Profile.objects.get(user=employer_user)
+        self.assertEqual(profile.company_name, 'TechCorp Systems')
+        self.assertEqual(profile.website, 'https://techcorp.io')
+        self.assertFalse(profile.is_private)
+        self.assertEqual(profile.display_name, 'TechCorp Systems')
+
+        # Check "Locked In." achievement
+        ach = Achievement.objects.get(slug='locked_in')
+        ua = UserAchievement.objects.get(user=employer_user, achievement=ach)
+        self.assertTrue(ua.unlocked)
+
+        # Check level profile rank title
+        lvl_profile = get_or_create_user_level_profile(employer_user)
+        self.assertEqual(lvl_profile.rank_title, 'Recruiting Novice')
+
+        # View public profile
+        view_res = self.client.get(reverse('accounts.profile', kwargs={'username': 'techcorp_hr'}))
+        self.assertEqual(view_res.status_code, 200)
+        self.assertContains(view_res, 'TechCorp Systems')
+        self.assertContains(view_res, 'Building Next-Gen Cloud Infrastructure')
+        self.assertContains(view_res, 'https://techcorp.io')
+        self.assertContains(view_res, 'About Us')
+        self.assertContains(view_res, 'Job Postings')
+        self.assertContains(view_res, 'Edit Company Profile')
+        self.assertContains(view_res, 'Post a Job')
+
+    def test_employer_onboarding_tutorial_and_demo_job_flow(self):
+        # 1. Sign up employer account
+        signup_res = self.client.post(reverse('accounts.signup'), {
+            'username': 'startup_recruiter',
+            'email': 'recruiter@startup.com',
+            'password': 'password123',
+            'confirm_password': 'password123',
+            'role': 'employer',
+        })
+        self.assertEqual(signup_res.status_code, 200)
+        self.assertContains(signup_res, 'Continue to Build Company Profile')
+
+        user = User.objects.get(username='startup_recruiter')
+        lvl_profile = get_or_create_user_level_profile(user)
+        self.assertFalse(lvl_profile.tutorial_completed)
+
+        # "Locking In..." awarded
+        locking_in = Achievement.objects.get(slug='locking_in')
+        ua = UserAchievement.objects.get(user=user, achievement=locking_in)
+        self.assertTrue(ua.unlocked)
+        self.assertEqual(lvl_profile.xp, 0)
+
+        # 2. Employer visits dashboard before completing tutorial
+        dash_res = self.client.get(reverse('leveling:dashboard'))
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, 'Welcome to Your Gamified Talent Search!')
+        self.assertContains(dash_res, 'Weekly Quests are Locked')
+        self.assertContains(dash_res, reverse('jobs.create') + '?demo=1')
+
+        # 3. Employer goes to create demo job
+        create_get = self.client.get(reverse('jobs.create') + '?demo=1')
+        self.assertEqual(create_get.status_code, 200)
+        self.assertContains(create_get, 'Post a Practice Job (Tutorial)')
+        self.assertContains(create_get, 'List Your First Practice Position')
+
+        # 4. Employer submits demo job
+        create_post = self.client.post(reverse('jobs.create'), {
+            'demo': '1',
+            'title': 'Frontend Engineer (Demo)',
+            'description': 'Help us build fast and beautiful web interfaces.',
+            'location': 'New York, NY',
+            'work_type': 'hybrid',
+            'required_skills': 'TypeScript, React, CSS',
+            'salary_min': '90000',
+            'salary_max': '130000',
+        })
+        demo_job = JobPosting.objects.filter(recruiter=user, title__icontains='(Demo)').first()
+        self.assertIsNotNone(demo_job)
+        self.assertRedirects(create_post, reverse('jobs.applicants', kwargs={'id': demo_job.id}) + '?demo=1')
+
+        # Verify demo applicant was created with application
+        alex_user = User.objects.get(username='alex_candidate_demo')
+        self.assertTrue(JobApplication.objects.filter(job=demo_job, applicant=alex_user).exists())
+
+        # 5. Employer visits applicants view for demo job
+        app_get = self.client.get(reverse('jobs.applicants', kwargs={'id': demo_job.id}) + '?demo=1')
+        self.assertEqual(app_get.status_code, 200)
+        self.assertContains(app_get, 'Reviewing Candidates & Managing Applications')
+        self.assertContains(app_get, 'Alex Morgan')
+
+        # 6. Employer updates status of demo applicant
+        demo_app = JobApplication.objects.get(job=demo_job, applicant=alex_user)
+        update_post = self.client.post(reverse('jobs.applicants', kwargs={'id': demo_job.id}), {
+            'demo': '1',
+            'application_id': demo_app.id,
+            'status': 'interview',
+        })
+        self.assertRedirects(update_post, reverse('leveling:dashboard') + '?tutorial=conclude')
+
+        # "First Step" achievement awarded
+        first_step = Achievement.objects.get(slug='first_step')
+        ua_first_step = UserAchievement.objects.get(user=user, achievement=first_step)
+        self.assertTrue(ua_first_step.unlocked)
+        lvl_profile.refresh_from_db()
+        self.assertEqual(lvl_profile.xp, 50)
+
+        # 7. Employer visits leveling dashboard with ?tutorial=conclude
+        conclude_res = self.client.get(reverse('leveling:dashboard') + '?tutorial=conclude')
+        self.assertEqual(conclude_res.status_code, 200)
+        lvl_profile.refresh_from_db()
+        self.assertTrue(lvl_profile.tutorial_completed)
+        self.assertContains(conclude_res, 'Tutorial Complete!')
+        self.assertContains(conclude_res, 'Weekly Quests are now Live!')
+
+        # 8. Verify weekly quests are employer-specific
+        quests = ensure_user_quests(user)
+        quest_slugs = set(quests.values_list('quest__slug', flat=True))
+        self.assertIn('weekly_post_job', quest_slugs)
+        self.assertIn('weekly_review_applicant', quest_slugs)
+        self.assertIn('weekly_update_company_profile', quest_slugs)
+        self.assertNotIn('weekly_apply_job', quest_slugs)
+        self.assertNotIn('weekly_update_profile', quest_slugs)
+
+    def test_employer_weekly_quests_progression(self):
+        employer = User.objects.create_user(
+            username='active_hiring_lead',
+            email='lead@active.com',
+            password='password123'
+        )
+        Profile.objects.create(user=employer, role='employer', company_name='Active Tech')
+        lvl_profile = get_or_create_user_level_profile(employer)
+        lvl_profile.tutorial_completed = True
+        lvl_profile.save()
+
+        self.client.login(username='active_hiring_lead', password='password123')
+        ensure_user_quests(employer)
+        start_date, _ = get_current_week_boundaries()
+
+        # 1. Post a real job -> advances weekly_post_job
+        real_job = JobPosting.objects.create(
+            title='Backend Python Engineer',
+            description='Design microservices',
+            recruiter=employer,
+            location='Austin, TX',
+            work_type='remote',
+            required_skills='Python, FastAPI, Postgres',
+            salary_min=110000,
+            salary_max=150000,
+            status='active'
+        )
+
+        uq_post = UserQuest.objects.get(user=employer, quest__slug='weekly_post_job', period_start=start_date)
+        self.assertEqual(uq_post.progress, 1)
+        self.assertTrue(uq_post.is_completed)
+
+        # 2. Review an applicant on real job -> advances weekly_review_applicant
+        candidate = User.objects.create_user(
+            username='dev_applicant',
+            email='dev@example.com',
+            password='password123'
+        )
+        Profile.objects.create(user=candidate, role='job_seeker')
+        real_app = JobApplication.objects.create(
+            job=real_job,
+            applicant=candidate,
+            cover_letter='Excited to apply',
+            status='applied'
+        )
+
+        # Recruiter updates status
+        self.client.post(reverse('jobs.applicants', kwargs={'id': real_job.id}), {
+            'application_id': real_app.id,
+            'status': 'review'
+        })
+
+        uq_review = UserQuest.objects.get(user=employer, quest__slug='weekly_review_applicant', period_start=start_date)
+        self.assertEqual(uq_review.progress, 1)
+        self.assertTrue(uq_review.is_completed)
+
+        # 3. Update company profile -> advances weekly_update_company_profile
+        self.client.post(reverse('accounts.edit_profile'), {
+            'company_name': 'Active Tech Solutions',
+            'headline': 'World Class Engineering',
+            'about': 'Updated company mission and values.',
+            'city': 'Austin',
+            'country': 'United States',
+            'state': 'Texas',
+        })
+
+        uq_profile = UserQuest.objects.get(user=employer, quest__slug='weekly_update_company_profile', period_start=start_date)
+        self.assertEqual(uq_profile.progress, 1)
+        self.assertTrue(uq_profile.is_completed)
+
+        # 4. Claim reward for posting a job (+100 XP)
+        init_xp = lvl_profile.xp
+        claim_res = self.client.post(reverse('leveling:claim_reward', kwargs={'user_quest_id': uq_post.id}))
+        self.assertRedirects(claim_res, reverse('leveling:dashboard'))
+        lvl_profile.refresh_from_db()
+        self.assertEqual(lvl_profile.xp, init_xp + 100)
+
+
 
 

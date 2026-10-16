@@ -45,6 +45,36 @@ def seed_default_gamification_content():
             'xp_reward': 75,
             'icon': 'fa-solid fa-user-pen',
         },
+        {
+            'slug': 'weekly_post_job',
+            'title': 'Talent Scout: Post a Job',
+            'description': 'Publish at least 1 job opening to attract candidates this week.',
+            'quest_type': 'weekly',
+            'metric_key': 'weekly_job_posted',
+            'target_count': 1,
+            'xp_reward': 100,
+            'icon': 'fa-solid fa-briefcase',
+        },
+        {
+            'slug': 'weekly_review_applicant',
+            'title': 'Candidate Reviewer',
+            'description': 'Review and update the status of at least 1 applicant this week.',
+            'quest_type': 'weekly',
+            'metric_key': 'applicant_status_updated',
+            'target_count': 1,
+            'xp_reward': 75,
+            'icon': 'fa-solid fa-user-check',
+        },
+        {
+            'slug': 'weekly_update_company_profile',
+            'title': 'Polish Company Profile',
+            'description': 'Update your company about us, tagline, or culture details this week.',
+            'quest_type': 'weekly',
+            'metric_key': 'profile_updated',
+            'target_count': 1,
+            'xp_reward': 50,
+            'icon': 'fa-solid fa-building',
+        },
     ]
 
     for q_data in default_quests:
@@ -78,7 +108,7 @@ def seed_default_gamification_content():
         {
             'slug': 'first_step',
             'title': 'First Step',
-            'description': 'Submit your very first job application.',
+            'description': 'Submit your first job application or list your first position.',
             'category': 'milestone',
             'icon': 'fa-solid fa-shoe-prints',
             'xp_reward': 50,
@@ -227,7 +257,19 @@ def ensure_user_quests(user):
     seed_default_gamification_content()
     start_date, end_date = get_current_week_boundaries()
 
-    active_quests = Quest.objects.filter(is_active=True, quest_type='weekly')
+    is_employer = hasattr(user, 'profile') and user.profile.role == 'employer'
+    if is_employer:
+        active_quests = Quest.objects.filter(
+            is_active=True,
+            quest_type='weekly',
+            slug__in=['weekly_post_job', 'weekly_review_applicant', 'weekly_update_company_profile']
+        )
+    else:
+        active_quests = Quest.objects.filter(
+            is_active=True,
+            quest_type='weekly',
+            slug__in=['weekly_apply_job', 'weekly_update_profile']
+        )
     user_quests = []
 
     for quest in active_quests:
@@ -241,7 +283,8 @@ def ensure_user_quests(user):
 
     return UserQuest.objects.filter(
         user=user,
-        period_start=start_date
+        period_start=start_date,
+        quest__in=active_quests
     ).select_related('quest')
 
 
@@ -411,6 +454,64 @@ def record_profile_update(user):
                 uq.save()
 
         check_achievements(user)
+
+
+def record_job_posted(user, job_posting):
+    """Event handler when an employer posts a job opening."""
+    with transaction.atomic():
+        profile = get_or_create_user_level_profile(user)
+
+        # Demo jobs don't count towards weekly quests
+        if job_posting and '(Demo)' in job_posting.title:
+            return
+
+        if not profile.tutorial_completed:
+            return
+
+        start_date, end_date = get_current_week_boundaries()
+        post_quests = Quest.objects.filter(metric_key='weekly_job_posted', is_active=True)
+        for q in post_quests:
+            uq, _ = UserQuest.objects.get_or_create(
+                user=user,
+                quest=q,
+                period_start=start_date,
+                defaults={'period_end': end_date}
+            )
+            if not uq.is_completed:
+                uq.progress += 1
+                if uq.progress >= q.target_count:
+                    uq.is_completed = True
+                    uq.completed_at = timezone.now()
+                uq.save()
+
+
+def record_applicant_status_updated(recruiter, application):
+    """Event handler when an employer reviews and updates an applicant's status."""
+    with transaction.atomic():
+        profile = get_or_create_user_level_profile(recruiter)
+
+        if application and application.job and '(Demo)' in application.job.title:
+            award_first_step_achievement(recruiter)
+            return
+
+        if not profile.tutorial_completed:
+            return
+
+        start_date, end_date = get_current_week_boundaries()
+        review_quests = Quest.objects.filter(metric_key='applicant_status_updated', is_active=True)
+        for q in review_quests:
+            uq, _ = UserQuest.objects.get_or_create(
+                user=recruiter,
+                quest=q,
+                period_start=start_date,
+                defaults={'period_end': end_date}
+            )
+            if not uq.is_completed:
+                uq.progress += 1
+                if uq.progress >= q.target_count:
+                    uq.is_completed = True
+                    uq.completed_at = timezone.now()
+                uq.save()
 
 
 def claim_quest_reward(user, user_quest_id):

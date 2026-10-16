@@ -11,6 +11,8 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='job_seeker')
+    company_name = models.CharField(max_length=255, blank=True, default='')
+    website = models.URLField(max_length=500, blank=True, default='')
     photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
     headline = models.CharField(max_length=255, blank=True, default='')
     about = models.TextField(blank=True, default='')
@@ -33,6 +35,12 @@ class Profile(models.Model):
     def update_location_string(self):
         parts = [p for p in [self.city, self.state, self.country] if p]
         self.location = ", ".join(parts)
+
+    @property
+    def display_name(self):
+        if self.role == 'employer' and self.company_name:
+            return self.company_name
+        return self.user.get_full_name() or self.user.username
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

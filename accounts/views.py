@@ -151,6 +151,82 @@ def edit_profile(request):
     selected_state_name = US_STATE_ABBR.get(profile.state, profile.state)
     is_us = profile.country in ['United States', 'US', 'USA']
 
+    if profile.role == 'employer':
+        if request.method == 'POST':
+            request.session.pop('is_new_account', None)
+            company_name = request.POST.get('company_name', '').strip()
+            username = request.POST.get('username', '').strip()
+            headline = request.POST.get('headline', '').strip()
+            about = request.POST.get('about', '').strip()
+            website = request.POST.get('website', '').strip()
+            city = request.POST.get('city', '').strip()
+            country = request.POST.get('country', '').strip()
+            state = request.POST.get('state', '').strip()
+            if country not in ['United States', 'US', 'USA']:
+                state = ''
+
+            if username and username.lower() != request.user.username.lower():
+                if User.objects.filter(username__iexact=username).exists():
+                    messages.error(request, f'Username "{username}" is already taken.')
+                    template_data = {'title': 'Build Your Company Profile | LockedIn' if is_new_account else 'Edit Company Profile | LockedIn'}
+                    return render(request, 'accounts/edit_employer_profile.html', {
+                        'template_data': template_data,
+                        'profile': profile,
+                        'profile_user': request.user,
+                        'is_owner': True,
+                        'is_new_account': is_new_account,
+                        'countries': COUNTRIES,
+                        'us_states': US_STATES,
+                        'selected_state_name': selected_state_name,
+                        'is_us': is_us,
+                    })
+                request.user.username = username
+
+            if company_name:
+                profile.company_name = company_name
+                request.user.first_name = company_name
+                request.user.last_name = ''
+            request.user.save()
+
+            if request.POST.get('remove_photo') == 'on':
+                if profile.photo:
+                    profile.photo.delete(save=False)
+                profile.photo = None
+            elif 'photo' in request.FILES:
+                profile.photo = request.FILES['photo']
+
+            profile.headline = headline
+            profile.about = about
+            profile.website = website
+            profile.city = city
+            profile.state = state
+            profile.country = country
+            profile.update_location_string()
+            profile.is_private = False  # Employer profiles are always publicly viewable
+            profile.save()
+
+            from leveling.services import award_profile_completed_achievement
+            first_time_result = award_profile_completed_achievement(request.user)
+
+            if first_time_result:
+                request.session['show_locked_in_modal'] = True
+
+            messages.success(request, 'Your company profile has been saved!')
+            return redirect('accounts.profile', username=request.user.username)
+
+        template_data = {'title': 'Build Your Company Profile | LockedIn' if is_new_account else 'Edit Company Profile | LockedIn'}
+        return render(request, 'accounts/edit_employer_profile.html', {
+            'template_data': template_data,
+            'profile': profile,
+            'profile_user': request.user,
+            'is_owner': True,
+            'is_new_account': is_new_account,
+            'countries': COUNTRIES,
+            'us_states': US_STATES,
+            'selected_state_name': selected_state_name,
+            'is_us': is_us,
+        })
+
     if request.method == 'POST':
         request.session.pop('is_new_account', None)
         first_name = request.POST.get('first_name', '').strip()
@@ -241,9 +317,7 @@ def user_profile(request, username):
     user = get_object_or_404(User, username__iexact=username)
     profile, _ = Profile.objects.get_or_create(user=user)
 
-    full_name = user.get_full_name()
-    if not full_name:
-        full_name = user.username
+    full_name = profile.display_name
 
     template_data = {
         'title': f"{full_name} | LockedIn",
@@ -260,6 +334,21 @@ def user_profile(request, username):
         if show_locked_in_modal:
             from leveling.services import get_or_create_user_level_profile
             level_profile = get_or_create_user_level_profile(request.user)
+
+    if profile.role == 'employer':
+        from jobs.models import JobPosting
+        active_jobs = JobPosting.objects.filter(recruiter=user, status='active').order_by('-date')
+        return render(request, 'accounts/employer_profile.html', {
+            'template_data': template_data,
+            'profile_user': user,
+            'profile': profile,
+            'full_name': full_name,
+            'is_owner': is_owner,
+            'is_admin': is_admin,
+            'show_locked_in_modal': show_locked_in_modal,
+            'level_profile': level_profile,
+            'active_jobs': active_jobs,
+        })
 
     return render(request, 'accounts/profile.html', {
         'template_data': template_data,

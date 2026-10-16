@@ -41,14 +41,25 @@
             </div>
           {% endif %}
 
-          <h2 class="h5 fw-bold text-primary mb-2">Welcome to LockedIn, {{ user.username }}!</h2>
-          <p class="text-secondary mb-4">
-            {{ achievement.description }} You've officially begun your quest to conquer the job market. Your first step is to customize and design your profile so employers can discover you.
-          </p>
+          {% if user.profile.role == 'employer' %}
+            <h2 class="h5 fw-bold text-primary mb-2">Welcome to LockedIn for Employers, {{ user.username }}!</h2>
+            <p class="text-secondary mb-4">
+              {{ achievement.description }} You've officially begun your recruitment journey on LockedIn. Your first step is to build your company profile so candidates can learn about your organization and open positions.
+            </p>
 
-          <a href="{{ continue_url }}" class="btn btn-primary btn-lg w-100 py-3 fw-bold rounded-pill shadow">
-            Continue to Design Profile <i class="fa-solid fa-arrow-right ms-2"></i>
-          </a>
+            <a href="{{ continue_url }}" class="btn btn-primary btn-lg w-100 py-3 fw-bold rounded-pill shadow">
+              Continue to Build Company Profile <i class="fa-solid fa-arrow-right ms-2"></i>
+            </a>
+          {% else %}
+            <h2 class="h5 fw-bold text-primary mb-2">Welcome to LockedIn, {{ user.username }}!</h2>
+            <p class="text-secondary mb-4">
+              {{ achievement.description }} You've officially begun your quest to conquer the job market. Your first step is to customize and design your profile so employers can discover you.
+            </p>
+
+            <a href="{{ continue_url }}" class="btn btn-primary btn-lg w-100 py-3 fw-bold rounded-pill shadow">
+              Continue to Design Profile <i class="fa-solid fa-arrow-right ms-2"></i>
+            </a>
+          {% endif %}
         </div>
 
       </div>

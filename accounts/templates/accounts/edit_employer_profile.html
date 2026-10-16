@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 p-md-5">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-2">
+                <i class="fa-solid fa-building me-1"></i> Employer Account
+              </span>
+              <h2 class="card-title text-primary fw-bold mb-1">
+                {% if is_new_account %}Build Your Company Profile{% else %}Edit Company Profile{% endif %}
+              </h2>
+              <p class="text-muted mb-0">Provide details about your organization so candidates can discover your team and culture.</p>
+            </div>
+            {% if is_new_account %}
+              <a href="{% url 'accounts.profile' username=user.username %}" class="btn btn-sm btn-outline-secondary text-nowrap ms-2">Skip for Now</a>
+            {% endif %}
+          </div>
+          <hr class="mb-4">
+
+          <form method="post" action="{% url 'accounts.edit_profile' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Company Logo -->
+            <div class="d-flex align-items-center gap-3 mb-4 p-3 border rounded-3 bg-light">
+              <div class="position-relative">
+                {% if profile.photo %}
+                  <img src="{{ profile.photo.url }}" alt="Company Logo" id="photo-preview" class="rounded border object-fit-cover" style="width: 80px; height: 80px;">
+                {% else %}
+                  <div id="photo-preview-placeholder" class="rounded border bg-white d-flex align-items-center justify-content-center text-secondary" style="width: 80px; height: 80px;">
+                    <i class="fa-solid fa-building fa-2x text-muted"></i>
+                  </div>
+                  <img src="" alt="Company Logo" id="photo-preview" class="rounded border object-fit-cover d-none" style="width: 80px; height: 80px;">
+                {% endif %}
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-semibold text-dark mb-1">Company Logo</div>
+                <input class="form-control form-control-sm" type="file" id="photo" name="photo" accept="image/*" aria-label="Company Logo">
+                {% if profile.photo %}
+                  <div class="form-check mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo">
+                    <label class="form-check-label text-danger small" for="remove_photo">Remove current logo</label>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Company Name -->
+            <div class="mb-3">
+              <label for="company_name" class="form-label fw-medium">Company Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="company_name" name="company_name" value="{{ profile.company_name|default:user.first_name }}" required placeholder="e.g. Acme Corporation" aria-label="Company Name">
+            </div>
+
+            <!-- Username / Profile URL -->
+            <div class="mb-3">
+              <label for="username" class="form-label fw-medium">Company Username / URL Handle <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">/</span>
+                <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required placeholder="acmecorp" aria-label="Username">
+              </div>
+              <div class="form-text">Your public profile handle: /{{ user.username }}.</div>
+            </div>
+
+            <!-- Tagline / Headline -->
+            <div class="mb-3">
+              <label for="headline" class="form-label fw-medium">Company Tagline / Industry Headline</label>
+              <input type="text" class="form-control" id="headline" name="headline" value="{{ profile.headline }}" placeholder="e.g. Pioneering modern developer tools & cloud infrastructure" aria-label="Tagline">
+            </div>
+
+            <!-- Website -->
+            <div class="mb-3">
+              <label for="website" class="form-label fw-medium">Company Website</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-globe"></i></span>
+                <input type="url" class="form-control" id="website" name="website" value="{{ profile.website }}" placeholder="https://www.example.com" aria-label="Company Website">
+              </div>
+            </div>
+
+            <!-- About Us -->
+            <div class="mb-4">
+              <label for="about" class="form-label fw-medium">About Us / Company Story</label>
+              <textarea class="form-control" id="about" name="about" rows="5" placeholder="Share your company's mission, values, work culture, and why top talent should join your organization...">{{ profile.about }}</textarea>
+            </div>
+
+            <!-- Location Section -->
+            <h5 class="fw-bold text-dark mb-3">Headquarters Location</h5>
+            <div class="row g-2 mb-4" id="location-row">
+              <div class="{% if is_us %}col-md-4{% else %}col-md-6{% endif %}" id="country-col">
+                <label for="country" class="form-label small fw-medium">Country</label>
+                <select class="form-select" id="country" name="country" aria-label="Country">
+                  <option value="">Select Country</option>
+                  {% for c in countries %}
+                    <option value="{{ c }}" {% if profile.country == c or profile.country == 'USA' and c == 'United States' or profile.country == 'US' and c == 'United States' %}selected{% endif %}>{{ c }}</option>
+                  {% endfor %}
+                  {% if profile.country and profile.country not in countries and profile.country != 'USA' and profile.country != 'US' %}
+                    <option value="{{ profile.country }}" selected>{{ profile.country }}</option>
+                  {% endif %}
+                </select>
+              </div>
+              <div class="col-md-4 {% if not is_us %}d-none{% endif %}" id="state-col">
+                <label for="state-select" class="form-label small fw-medium">State</label>
+                <select class="form-select" id="state-select" name="state" {% if not is_us %}disabled{% endif %} aria-label="State">
+                  <option value="">Select State</option>
+                  {% for s in us_states %}
+                    <option value="{{ s }}" {% if selected_state_name == s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="{% if is_us %}col-md-4{% else %}col-md-6{% endif %}" id="city-col">
+                <label for="city" class="form-label small fw-medium">City</label>
+                <input type="text" class="form-control" id="city" name="city" value="{{ profile.city }}" placeholder="City" aria-label="City">
+              </div>
+            </div>
+
+            <div class="alert alert-light border small text-muted mb-4 d-flex align-items-center gap-2">
+              <i class="fa-solid fa-circle-info text-primary"></i>
+              <span>All employer profiles on LockedIn are publicly viewable so job seekers can always learn about your company and view your active positions.</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between align-items-center pt-2">
+              <a href="{% url 'accounts.profile' username=user.username %}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary px-4 fw-bold">Save Company Profile</button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function() {
+    var photoInput = document.getElementById('photo');
+    var photoPreview = document.getElementById('photo-preview');
+    var photoPlaceholder = document.getElementById('photo-preview-placeholder');
+
+    if (photoInput) {
+      photoInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            photoPreview.src = e.target.result;
+            photoPreview.classList.remove('d-none');
+            if (photoPlaceholder) {
+              photoPlaceholder.classList.add('d-none');
+            }
+          };
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
+    }
+
+    var countrySelect = document.getElementById('country');
+    var countryCol = document.getElementById('country-col');
+    var stateCol = document.getElementById('state-col');
+    var stateSelect = document.getElementById('state-select');
+    var cityCol = document.getElementById('city-col');
+
+    if (countrySelect && stateCol && stateSelect) {
+      countrySelect.addEventListener('change', function() {
+        var isUnitedStates = this.value === 'United States';
+        if (isUnitedStates) {
+          stateCol.classList.remove('d-none');
+          stateSelect.disabled = false;
+          countryCol.className = 'col-md-4';
+          cityCol.className = 'col-md-4';
+        } else {
+          stateCol.classList.add('d-none');
+          stateSelect.disabled = true;
+          stateSelect.value = '';
+          countryCol.className = 'col-md-6';
+          cityCol.className = 'col-md-6';
+        }
+      });
+    }
+  })();
+</script>
+{% endblock content %}
+

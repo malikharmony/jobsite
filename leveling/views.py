@@ -35,6 +35,14 @@ def dashboard(request):
     unlocked_achievements = achievements.filter(unlocked=True).count()
     total_achievements = achievements.count()
 
+    is_employer = hasattr(user, 'profile') and user.profile.role == 'employer'
+    employer_total_jobs = 0
+    employer_total_applicants = 0
+    if is_employer:
+        from jobs.models import JobPosting, JobApplication
+        employer_total_jobs = JobPosting.objects.filter(recruiter=user).exclude(title__icontains='(Demo)').count()
+        employer_total_applicants = JobApplication.objects.filter(job__recruiter=user).exclude(job__title__icontains='(Demo)').count()
+
     template_data = {
         'title': 'Leveling & Quests | LockedIn',
     }
@@ -50,6 +58,9 @@ def dashboard(request):
         'show_intro_tutorial': show_intro_tutorial,
         'show_conclude_tutorial': show_conclude_tutorial,
         'quests_unlocked': quests_unlocked,
+        'is_employer': is_employer,
+        'employer_total_jobs': employer_total_jobs,
+        'employer_total_applicants': employer_total_applicants,
     })
 
 

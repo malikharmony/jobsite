@@ -7,15 +7,36 @@
       <div class="card shadow-sm border-0">
         <div class="card-body p-4 p-md-5">
           <h2 class="card-title text-primary fw-bold mb-2">
-            {% if job %}Edit Job{% else %}Post a Job{% endif %}
+            {% if demo_mode %}Post a Practice Job (Tutorial){% elif job %}Edit Job{% else %}Post a Job{% endif %}
           </h2>
           <p class="text-muted mb-4">
             Describe your job position so candidates can find the right opportunity.
           </p>
+
+          {% if demo_mode %}
+          <div class="alert border-0 shadow-sm p-4 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 5px solid #16a34a !important;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-success text-white px-2 py-1 rounded-pill small">
+                <i class="fa-solid fa-graduation-cap me-1"></i> Employer Tutorial
+              </span>
+              <h2 class="h5 fw-bold text-success-emphasis mb-0">List Your First Practice Position</h2>
+            </div>
+            <p class="text-secondary mb-2 small">
+              Welcome to LockedIn hiring! Fill in the job details below to create your practice listing. We've pre-filled a sample software engineering role for convenience, but feel free to customize it.
+            </p>
+            <p class="text-success-emphasis mb-0 small fw-semibold">
+              👉 Click <strong>"Save Job"</strong> below to publish this practice posting and review your first sample candidate!
+            </p>
+          </div>
+          {% endif %}
+
           <hr class="mb-4">
 
           <form method="post">
             {% csrf_token %}
+            {% if demo_mode %}
+              <input type="hidden" name="demo" value="1">
+            {% endif %}
 
             <div class="mb-3">
               <label for="title" class="form-label fw-medium">Job Title</label>

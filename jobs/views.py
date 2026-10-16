@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
 from jobs.models import JobPosting, JobApplication, JobReport
@@ -282,6 +283,7 @@ def applications(request):
 @login_required
 def applicants(request, id):
     job = get_object_or_404(JobPosting, id=id, recruiter=request.user)
+    demo_mode = request.GET.get('demo') == '1' or request.POST.get('demo') == '1' or '(Demo)' in job.title
 
     if request.method == 'POST':
         application_id = request.POST.get('application_id')
@@ -301,6 +303,12 @@ def applicants(request, id):
             else:
                 messages.error(request, 'Invalid application status.')
 
+        if demo_mode:
+            from leveling.services import award_first_step_achievement
+            award_first_step_achievement(request.user)
+            messages.success(request, '🎉 Practice applicant reviewed! You unlocked the "First Step" achievement (+50 XP).')
+            return redirect(reverse('leveling:dashboard') + '?tutorial=conclude')
+
         return redirect('jobs.applicants', id=job.id)
 
     applications = job.applications.select_related('applicant').order_by('-submitted_at')
@@ -312,12 +320,14 @@ def applicants(request, id):
         'template_data': template_data,
         'job': job,
         'applications': applications,
+        'demo_mode': demo_mode,
     })
 
 @login_required
 def create_job(request):
+    demo_mode = request.GET.get('demo') == '1' or request.POST.get('demo') == '1'
     template_data = {
-        "title" : "Post a Job | LockedIn"
+        "title": "Post a Practice Job | LockedIn" if demo_mode else "Post a Job | LockedIn"
     }
 
     is_employer = Profile.objects.filter(
@@ -344,43 +354,46 @@ def create_job(request):
             return render(
                 request,
                 'jobs/job_form.html',
-                context={"template_data" : template_data}
+                context={"template_data": template_data, "demo_mode": demo_mode}
             )
         if not all([title, description, location, required_skills, work_type]):
             messages.error(request, 'All fields must be completed')
             return render(
                 request,
                 'jobs/job_form.html',
-                context={"template_data" : template_data}
+                context={"template_data": template_data, "demo_mode": demo_mode}
             )
         if not work_type in ["in-person", "hybrid", "remote"]:
             messages.error(request, 'Work type must be in-person, hybrid, or remote')
             return render(
                 request,
                 'jobs/job_form.html',
-                context={"template_data" : template_data}
+                context={"template_data": template_data, "demo_mode": demo_mode}
             )
         if salary_min > 99999999 or salary_max > 99999999:
             messages.error(request, 'Salaries must not exceed limit')
             return render(
                 request,
                 'jobs/job_form.html',
-                context={"template_data" : template_data}
+                context={"template_data": template_data, "demo_mode": demo_mode}
             )
         if salary_min < 0 or salary_max < 0:
             messages.error(request, 'Salaries cannot be negative')
             return render(
                 request,
                 'jobs/job_form.html',
-                context={"template_data" : template_data}
+                context={"template_data": template_data, "demo_mode": demo_mode}
             )
         if salary_min > salary_max:
             messages.error(request, 'Minimum salary cannot be greater than the maximum salary')
             return render(
                 request,
                 'jobs/job_form.html',
-                context={"template_data" : template_data}
+                context={"template_data": template_data, "demo_mode": demo_mode}
             )
+
+        if demo_mode and '(Demo)' not in title:
+            title = f"{title} (Demo)"
 
         job = JobPosting()
         job.title = title
@@ -394,15 +407,70 @@ def create_job(request):
         job.recruiter = request.user
         job.save()
 
+        if demo_mode:
+            # Create or retrieve fake demo applicant Alex Morgan
+            demo_user, _ = User.objects.get_or_create(
+                username='alex_candidate_demo',
+                defaults={
+                    'first_name': 'Alex',
+                    'last_name': 'Morgan',
+                    'email': 'alex.morgan.demo@example.com',
+                }
+            )
+            Profile.objects.get_or_create(
+                user=demo_user,
+                defaults={
+                    'role': 'job_seeker',
+                    'headline': 'Full Stack Developer | Python, Django, React',
+                    'about': 'Passionate software developer with experience building responsive web applications. Enthusiastic about joining an innovative and collaborative engineering team.',
+                    'skills': 'Python, Django, JavaScript, React, PostgreSQL, Docker, Git',
+                    'education': 'B.S. in Computer Science',
+                    'city': 'San Francisco',
+                    'state': 'California',
+                    'country': 'United States',
+                    'is_private': False,
+                }
+            )
+            JobApplication.objects.create(
+                job=job,
+                applicant=demo_user,
+                cover_letter="Hello Hiring Team!\n\nI am thrilled to submit my application for this role. With my background in Python and full-stack development, I am confident I can make an immediate positive impact on your projects. Thank you for your time and consideration!",
+                status='applied',
+            )
+            messages.success(
+                request,
+                '🎉 Practice job created! A sample candidate (Alex Morgan) has just applied. Now review their application to complete your training!'
+            )
+            return redirect(reverse('jobs.applicants', kwargs={'id': job.id}) + '?demo=1')
+
         messages.success(
             request,
             'Job posting created successfully.',
         )
         return redirect('jobs.my_jobs')
 
+    demo_job = None
+    if demo_mode:
+        demo_job = {
+            'title': 'Software Engineer (Demo)',
+            'description': 'We are seeking a talented and motivated Software Engineer to join our engineering team. You will build and maintain modern web applications, collaborate with designers and product managers, and write clean, scalable code.',
+            'location': 'Atlanta, GA (Hybrid)',
+            'work_type': 'hybrid',
+            'required_skills': 'Python, Django, JavaScript, SQL, Git',
+            'salary_min': 85000,
+            'salary_max': 125000,
+            'visa_sponsorship': True,
+        }
 
-    return render(request, 'jobs/job_form.html',
-                  context={"template_data" : template_data})
+    return render(
+        request,
+        'jobs/job_form.html',
+        context={
+            "template_data": template_data,
+            "demo_mode": demo_mode,
+            "job": demo_job,
+        }
+    )
 
 
 @login_required

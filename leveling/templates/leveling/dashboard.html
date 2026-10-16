@@ -1,6 +1,20 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+  .badge-icon-circle {
+    width: 72px;
+    height: 72px;
+  }
+  .badge-icon-unlocked {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #b45309;
+  }
+  .badge-icon-locked {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+  }
+</style>
 <section class="leveling-dashboard py-5">
   <div class="container">
 
@@ -19,25 +33,44 @@
         </div>
 
         <p class="text-secondary lead fs-6 mb-3">
-          You've successfully completed the tutorial sequence: setting up your profile and submitting your first practice application! You earned the <strong>"First Step"</strong> achievement (+50 XP).
+          {% if is_employer %}
+            You've successfully completed the tutorial sequence: setting up your company profile, publishing your practice job, and reviewing your sample candidate! You earned the <strong>"First Step"</strong> achievement (+50 XP).
+          {% else %}
+            You've successfully completed the tutorial sequence: setting up your profile and submitting your first practice application! You earned the <strong>"First Step"</strong> achievement (+50 XP).
+          {% endif %}
         </p>
 
         <div class="alert alert-light border shadow-sm mb-4">
           <h3 class="h6 fw-bold text-primary mb-2"><i class="fa-solid fa-circle-info me-1"></i> How the Weekly Quests System Works:</h3>
           <ul class="mb-0 small text-muted">
             <li class="mb-1"><strong>Reset Schedule:</strong> Every Monday at 00:00 UTC, a fresh set of weekly quests is generated.</li>
-            <li class="mb-1"><strong>Real Actions Count:</strong> Applying to jobs and updating your profile will automatically advance your quest progress.</li>
-            <li><strong>Claiming Rewards:</strong> When a quest is complete, click <strong>"Claim Reward"</strong> to collect your XP bonus and level up your profile!</li>
+            {% if is_employer %}
+              <li class="mb-1"><strong>Real Actions Count:</strong> Posting jobs, reviewing applicants, and polishing your company profile will automatically advance your quest progress.</li>
+              <li><strong>Claiming Rewards:</strong> When a quest is complete, click <strong>"Claim Reward"</strong> to collect your XP bonus and level up your organization's recruiting rank!</li>
+            {% else %}
+              <li class="mb-1"><strong>Real Actions Count:</strong> Applying to jobs and updating your profile will automatically advance your quest progress.</li>
+              <li><strong>Claiming Rewards:</strong> When a quest is complete, click <strong>"Claim Reward"</strong> to collect your XP bonus and level up your profile!</li>
+            {% endif %}
           </ul>
         </div>
 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 pt-3 border-top border-primary-subtle">
           <span class="text-primary-emphasis fw-semibold small">
-            <i class="fa-solid fa-sparkles me-1"></i> Check out your active weekly quests below and start applying to real job postings!
+            {% if is_employer %}
+              <i class="fa-solid fa-sparkles me-1"></i> Check out your active employer quests below and start listing real positions!
+            {% else %}
+              <i class="fa-solid fa-sparkles me-1"></i> Check out your active weekly quests below and start applying to real job postings!
+            {% endif %}
           </span>
-          <a href="{% url 'jobs.index' %}" class="btn btn-primary px-4 fw-bold shadow-sm">
-            Browse Real Postings <i class="fa-solid fa-briefcase ms-1"></i>
-          </a>
+          {% if is_employer %}
+            <a href="{% url 'jobs.create' %}" class="btn btn-primary px-4 fw-bold shadow-sm">
+              Post a Job Opening <i class="fa-solid fa-plus ms-1"></i>
+            </a>
+          {% else %}
+            <a href="{% url 'jobs.index' %}" class="btn btn-primary px-4 fw-bold shadow-sm">
+              Browse Real Postings <i class="fa-solid fa-briefcase ms-1"></i>
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -50,13 +83,19 @@
             <span class="badge bg-success text-white px-3 py-2 rounded-pill fs-6 shadow-sm">
               <i class="fa-solid fa-graduation-cap me-1"></i> Tutorial
             </span>
-            <h2 class="h4 fw-bold text-success-emphasis mb-0">Welcome to Your Gamified Job Hunt!</h2>
+            <h2 class="h4 fw-bold text-success-emphasis mb-0">
+              {% if is_employer %}Welcome to Your Gamified Talent Search!{% else %}Welcome to Your Gamified Job Hunt!{% endif %}
+            </h2>
           </div>
           <button type="button" class="btn-close" aria-label="Close" onclick="this.closest('.card').remove();"></button>
         </div>
 
         <p class="text-secondary lead fs-6 mb-4">
-          Searching for jobs can feel tedious. LockedIn transforms your search into an interactive journey where every action earns you XP, levels, and collectible badges! Here is how your system works:
+          {% if is_employer %}
+            Hiring top talent is a competitive game. LockedIn transforms your recruitment into an engaging experience where posting roles, evaluating candidates, and building your team earns XP, levels, and badges! Here is how your system works:
+          {% else %}
+            Searching for jobs can feel tedious. LockedIn transforms your search into an interactive journey where every action earns you XP, levels, and collectible badges! Here is how your system works:
+          {% endif %}
         </p>
 
         <div class="row g-3 mb-4">
@@ -67,7 +106,11 @@
                 <h3 class="h6 fw-bold mb-0">1. XP & Levels</h3>
               </div>
               <p class="small text-muted mb-0">
-                Every application, profile polish, and milestone grants XP. Climb through ranks from <em>Job Seeker Novice</em> to <em>Locked In Legend</em>!
+                {% if is_employer %}
+                  Every job post, applicant reviewed, and company update grants XP. Climb through ranks from <em>Recruiting Novice</em> to <em>Locked In Talent Leader</em>!
+                {% else %}
+                  Every application, profile polish, and milestone grants XP. Climb through ranks from <em>Job Seeker Novice</em> to <em>Locked In Legend</em>!
+                {% endif %}
               </p>
             </div>
           </div>
@@ -79,7 +122,11 @@
                 <h3 class="h6 fw-bold mb-0">2. Weekly Quests</h3>
               </div>
               <p class="small text-muted mb-0">
-                Fresh quests reset every Monday at 00:00 UTC. Submit applications and update your profile to earn rapid bonus XP!
+                {% if is_employer %}
+                  Fresh recruiter quests reset every Monday at 00:00 UTC. Post jobs and review candidates to earn rapid bonus XP!
+                {% else %}
+                  Fresh quests reset every Monday at 00:00 UTC. Submit applications and update your profile to earn rapid bonus XP!
+                {% endif %}
               </p>
             </div>
           </div>
@@ -91,7 +138,11 @@
                 <h3 class="h6 fw-bold mb-0">3. Achievements</h3>
               </div>
               <p class="small text-muted mb-0">
-                Unlock long-term milestones and secret novelty badges (like getting rejected after getting an internship) as you progress.
+                {% if is_employer %}
+                  Unlock long-term hiring milestones as you expand your company and discover top talent on LockedIn.
+                {% else %}
+                  Unlock long-term milestones and secret novelty badges (like getting rejected after getting an internship) as you progress.
+                {% endif %}
               </p>
             </div>
           </div>
@@ -99,11 +150,21 @@
 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 pt-3 border-top border-success-subtle">
           <span class="text-success-emphasis fw-semibold small">
-            <i class="fa-solid fa-bullseye me-1"></i> Next Tutorial Step: Try a practice application with our Google Demo role to earn your "First Step" achievement (+50 XP) and unlock Weekly Quests!
+            {% if is_employer %}
+              <i class="fa-solid fa-bullseye me-1"></i> Next Tutorial Step: Post a practice position to earn your "First Step" achievement (+50 XP) and learn how to manage candidate applications!
+            {% else %}
+              <i class="fa-solid fa-bullseye me-1"></i> Next Tutorial Step: Try a practice application with our Google Demo role to earn your "First Step" achievement (+50 XP) and unlock Weekly Quests!
+            {% endif %}
           </span>
-          <a href="{% url 'jobs.index' %}?demo=1" class="btn btn-success px-4 fw-bold shadow-sm">
-            Explore Job Discovery <i class="fa-solid fa-arrow-right ms-1"></i>
-          </a>
+          {% if is_employer %}
+            <a href="{% url 'jobs.create' %}?demo=1" class="btn btn-success px-4 fw-bold shadow-sm">
+              Post Practice Job <i class="fa-solid fa-arrow-right ms-1"></i>
+            </a>
+          {% else %}
+            <a href="{% url 'jobs.index' %}?demo=1" class="btn btn-success px-4 fw-bold shadow-sm">
+              Explore Job Discovery <i class="fa-solid fa-arrow-right ms-1"></i>
+            </a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -126,7 +187,11 @@
 
             <h1 class="display-6 fw-bold mb-2">Welcome back, {{ request.user.username }}!</h1>
             <p class="text-light opacity-75 mb-4">
-              Level up your job search. Complete weekly quests and unlock achievements to earn XP and level up your LockedIn profile.
+              {% if is_employer %}
+                Level up your recruitment. Complete weekly quests and unlock achievements to earn XP and level up your organization's recruiting rank.
+              {% else %}
+                Level up your job search. Complete weekly quests and unlock achievements to earn XP and level up your LockedIn profile.
+              {% endif %}
             </p>
 
             <!-- XP Progress Bar -->
@@ -140,7 +205,7 @@
                 </span>
               </div>
               <div class="progress" style="height: 14px; background-color: rgba(255,255,255,0.3);" role="progressbar" aria-valuenow="{{ level_profile.level_progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold small" style="width: {{ level_profile.level_progress_percentage }}%;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold small" role="progressbar" data-progress="{{ level_profile.level_progress_percentage }}">
                   {% if level_profile.level_progress_percentage > 15 %}{{ level_profile.level_progress_percentage }}%{% endif %}
                 </div>
               </div>
@@ -154,18 +219,33 @@
           <!-- Quick Stats Counter Column -->
           <div class="col-12 col-md-4">
             <div class="row g-2">
-              <div class="col-6">
-                <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
-                  <div class="fs-3 fw-bold">{{ level_profile.total_applications }}</div>
-                  <div class="small opacity-75">Jobs Applied</div>
+              {% if is_employer %}
+                <div class="col-6">
+                  <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                    <div class="fs-3 fw-bold">{{ employer_total_jobs }}</div>
+                    <div class="small opacity-75">Jobs Listed</div>
+                  </div>
                 </div>
-              </div>
-              <div class="col-6">
-                <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
-                  <div class="fs-3 fw-bold">{{ level_profile.distinct_companies_applied }}</div>
-                  <div class="small opacity-75">Companies</div>
+                <div class="col-6">
+                  <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                    <div class="fs-3 fw-bold">{{ employer_total_applicants }}</div>
+                    <div class="small opacity-75">Applicants</div>
+                  </div>
                 </div>
-              </div>
+              {% else %}
+                <div class="col-6">
+                  <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                    <div class="fs-3 fw-bold">{{ level_profile.total_applications }}</div>
+                    <div class="small opacity-75">Jobs Applied</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
+                    <div class="fs-3 fw-bold">{{ level_profile.distinct_companies_applied }}</div>
+                    <div class="small opacity-75">Companies</div>
+                  </div>
+                </div>
+              {% endif %}
               <div class="col-6">
                 <div class="bg-white bg-opacity-10 border border-white border-opacity-25 rounded-3 p-3 text-center">
                   <div class="fs-3 fw-bold">{{ completed_quests }} / {{ quests|length }}</div>
@@ -205,11 +285,21 @@
               </div>
               <h3 class="h5 fw-bold text-dark mb-2">Weekly Quests are Locked</h3>
               <p class="text-muted mx-auto mb-4" style="max-width: 520px;">
-                Complete the onboarding tutorial by submitting your practice application to the <strong>Google Demo</strong> role to unlock weekly quests and start collecting bonus XP!
+                {% if is_employer %}
+                  Complete the onboarding tutorial by publishing your practice position and reviewing your sample candidate to unlock weekly quests and start collecting bonus XP!
+                {% else %}
+                  Complete the onboarding tutorial by submitting your practice application to the <strong>Google Demo</strong> role to unlock weekly quests and start collecting bonus XP!
+                {% endif %}
               </p>
-              <a href="{% url 'jobs.index' %}?demo=1" class="btn btn-success px-4 py-2 fw-bold shadow-sm">
-                <i class="fa-solid fa-play me-2"></i> Start Practice Application (Google Demo)
-              </a>
+              {% if is_employer %}
+                <a href="{% url 'jobs.create' %}?demo=1" class="btn btn-success px-4 py-2 fw-bold shadow-sm">
+                  <i class="fa-solid fa-play me-2"></i> Start Practice Job Posting
+                </a>
+              {% else %}
+                <a href="{% url 'jobs.index' %}?demo=1" class="btn btn-success px-4 py-2 fw-bold shadow-sm">
+                  <i class="fa-solid fa-play me-2"></i> Start Practice Application (Google Demo)
+                </a>
+              {% endif %}
             </div>
           </div>
         {% else %}
@@ -258,7 +348,7 @@
                         <span class="fw-semibold">{{ uq.progress }} / {{ uq.quest.target_count }}</span>
                       </div>
                       <div class="progress mb-3" style="height: 8px;">
-                        <div class="progress-bar {% if uq.is_completed %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ uq.progress_percentage }}%;" aria-valuenow="{{ uq.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar {% if uq.is_completed %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" data-progress="{{ uq.progress_percentage }}" aria-valuenow="{{ uq.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                       </div>
 
                       <div class="d-flex justify-content-between align-items-center">
@@ -320,8 +410,7 @@
                 <div class="card-body p-4 d-flex flex-column text-center">
                   
                   <!-- Badge Icon Circle -->
-                  <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                       style="width: 72px; height: 72px; {% if ua.unlocked %}background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #b45309;{% else %}background-color: #f1f5f9; color: #94a3b8;{% endif %}">
+                  <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center shadow-sm badge-icon-circle {% if ua.unlocked %}badge-icon-unlocked{% else %}badge-icon-locked{% endif %}">
                     {% if ua.unlocked %}
                       <i class="{{ ua.achievement.icon }} fa-2x"></i>
                     {% elif ua.achievement.is_secret %}
@@ -367,7 +456,7 @@
                         <span>{{ ua.current_progress }} / {{ ua.achievement.target_value }}</span>
                       </div>
                       <div class="progress mb-2" style="height: 6px;">
-                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ ua.progress_percentage }}%;" aria-valuenow="{{ ua.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar bg-warning" role="progressbar" data-progress="{{ ua.progress_percentage }}" aria-valuenow="{{ ua.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                       </div>
                       <span class="badge text-bg-light border text-muted small">
                         Worth +{{ ua.achievement.xp_reward }} XP
@@ -385,5 +474,21 @@
 
   </div>
 </section>
+
+<script>
+  function applyProgressBars() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
+      var val = bar.getAttribute('data-progress');
+      if (val !== null) {
+        bar.style.width = val + '%';
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyProgressBars);
+  } else {
+    applyProgressBars();
+  }
+</script>
 {% endblock content %}
 

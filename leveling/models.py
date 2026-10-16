@@ -14,6 +14,17 @@ LEVEL_TITLES = {
     8: "Locked In Legend",
 }
 
+EMPLOYER_LEVEL_TITLES = {
+    1: "Recruiting Novice",
+    2: "Hiring Scout",
+    3: "Active Employer",
+    4: "Talent Acquirer",
+    5: "Team Builder",
+    6: "Hiring Manager",
+    7: "Director of Talent",
+    8: "Locked In Talent Leader",
+}
+
 LEVEL_THRESHOLDS = [
     (1, 0),
     (2, 100),
@@ -61,6 +72,14 @@ class UserLevelProfile(models.Model):
 
     @property
     def rank_title(self):
+        try:
+            if hasattr(self.user, 'profile') and self.user.profile.role == 'employer':
+                if self.level in EMPLOYER_LEVEL_TITLES:
+                    return EMPLOYER_LEVEL_TITLES[self.level]
+                return "Locked In Talent Leader"
+        except Exception:
+            pass
+
         if self.level in LEVEL_TITLES:
             return LEVEL_TITLES[self.level]
         return "Locked In Legend"
